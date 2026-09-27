@@ -230,7 +230,14 @@ export function WorkspaceApp({ client }: WorkspaceAppProps): React.JSX.Element {
             .moveItems(items, targetDirectoryRelativePath)
             .finally(() => setOperationBusy(false));
         }}
-        onRecycle={() => setActiveDialog("recycle")}
+        onRecycle={() => {
+          if (selection.selectedItems.some((item) => item.enabled)) {
+            setActiveDialog("recycle");
+            return;
+          }
+          setOperationBusy(true);
+          void operations.recycle().finally(() => setOperationBusy(false));
+        }}
         onRenameItem={(item, newName) => {
           setOperationBusy(true);
           return operations.renameItem(item, newName).finally(() => setOperationBusy(false));

@@ -189,7 +189,6 @@ test("imports, groups, recycles and restores real NPK files", async () => {
 
     await page.getByRole("button", { name: "自定义", exact: true }).click({ button: "right" });
     await page.getByRole("menuitem", { name: "删除", exact: true }).click();
-    await page.getByRole("button", { name: "确认回收", exact: true }).click();
     await expect(page.getByRole("button", { name: "自定义", exact: true })).toHaveCount(0);
 
     await page.getByRole("button", { name: "回收站", exact: true }).click();

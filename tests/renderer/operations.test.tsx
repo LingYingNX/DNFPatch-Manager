@@ -470,8 +470,8 @@ describe("workspace operations", () => {
     );
     expect(screen.queryByRole("textbox", { name: "组名称" })).not.toBeInTheDocument();
 
-    fireEvent.keyDown(itemButton("coat.npk"), { key: "Delete" });
-    expect(screen.getByRole("button", { name: "确认回收" })).toBeInTheDocument();
+    fireEvent.keyDown(itemButton("sword.npk"), { key: "Delete" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("enables the selected item and refreshes the workspace", async () => {
@@ -706,7 +706,7 @@ describe("workspace operations", () => {
     expect(within(screen.getByRole("main")).queryByRole("status")).not.toBeInTheDocument();
   });
 
-  it("requires confirmation before recycling selected items", async () => {
+  it("recycles selected items without a confirmation dialog", async () => {
     const recycled: Array<Parameters<DnfApi["recycleItems"]>[0]> = [];
     let singleCalls = 0;
     const api: DnfApi = {
@@ -721,15 +721,33 @@ describe("workspace operations", () => {
       },
     };
     render(<App api={api} />);
+    await screen.findByText("sword.npk");
+    fireEvent.contextMenu(itemButton("sword.npk"));
+    fireEvent.click(within(screen.getByRole("menu")).getByRole("menuitem", { name: "删除" }));
+
+    await waitFor(() =>
+      expect(recycled).toEqual([{ items: [{ kind: "patch", relativePath: "sword.npk" }] }]),
+    );
+    expect(singleCalls).toBe(0);
+  });
+
+  it("blocks recycling an installed patch with an explanatory dialog", async () => {
+    const recycled: Array<Parameters<DnfApi["recycleItems"]>[0]> = [];
+    const api: DnfApi = {
+      ...createFakeApi(WORKSPACE_SNAPSHOT),
+      recycleItems: async (request) => {
+        recycled.push(request);
+        return { ok: true, value: { ids: request.items.map(() => crypto.randomUUID()) } };
+      },
+    };
+    render(<App api={api} />);
     await screen.findByText("coat.npk");
     fireEvent.contextMenu(itemButton("coat.npk"));
     fireEvent.click(within(screen.getByRole("menu")).getByRole("menuitem", { name: "删除" }));
-    expect(recycled).toEqual([]);
-    fireEvent.click(screen.getByRole("button", { name: "确认回收" }));
 
-    await waitFor(() =>
-      expect(recycled).toEqual([{ items: [{ kind: "patch", relativePath: "coat.npk" }] }]),
-    );
-    expect(singleCalls).toBe(0);
+    expect(await screen.findByRole("dialog")).toHaveTextContent("补丁已安装，请先关闭再删除。");
+    expect(recycled).toEqual([]);
+    fireEvent.click(screen.getByRole("button", { name: "知道了" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });

@@ -125,34 +125,25 @@ function MoveForm({
   );
 }
 
-function RecycleForm({ onClose, operations, selectedItems }: FormProps): React.JSX.Element {
-  const [submitting, setSubmitting] = useState(false);
-  const submit = async (): Promise<void> => {
-    setSubmitting(true);
-    if (await operations.recycle()) {
-      onClose();
-    } else {
-      setSubmitting(false);
-    }
-  };
-  return (
-    <Dialog onClose={onClose} title="移入回收站">
-      <div className="dialog-body">
-        <p>
-          将 {selectedItems.length} 个选中项目移入应用回收站。原始位置会被记录，
-          <span className="nowrap">可在恢复前检查冲突</span>。
-        </p>
-      </div>
-      <div className="dialog-actions">
-        <CommandButton data-dialog-initial-focus onClick={onClose}>
-          取消
-        </CommandButton>
-        <CommandButton loading={submitting} onClick={() => void submit()} variant="danger">
-          确认回收
-        </CommandButton>
-      </div>
-    </Dialog>
-  );
+function RecycleForm({
+  onClose,
+  selectedItems,
+}: Pick<OperationDialogsProps, "onClose" | "selectedItems">): React.JSX.Element | null {
+  if (selectedItems.some((item) => item.enabled)) {
+    return (
+      <Dialog onClose={onClose} title="无法移入回收站">
+        <div className="dialog-body">
+          <p>补丁已安装，请先关闭再删除。</p>
+        </div>
+        <div className="dialog-actions">
+          <CommandButton data-dialog-initial-focus onClick={onClose}>
+            知道了
+          </CommandButton>
+        </div>
+      </Dialog>
+    );
+  }
+  return null;
 }
 
 export function OperationDialogs(props: OperationDialogsProps): React.JSX.Element | null {
@@ -162,7 +153,7 @@ export function OperationDialogs(props: OperationDialogsProps): React.JSX.Elemen
     case "move":
       return <MoveForm {...props} />;
     case "recycle":
-      return <RecycleForm {...props} />;
+      return <RecycleForm onClose={props.onClose} selectedItems={props.selectedItems} />;
     case "recycle-bin":
       return <RecycleBinDialog {...props} />;
     default:
