@@ -551,7 +551,7 @@ export function CategorySidebar({
           icon={<Archive size={16} />}
           label="回收站"
           onClick={onRecycleBin}
-          selected={false}
+          selected={navigation.kind === "recycle"}
         />
         <SystemRow
           count={allCount}

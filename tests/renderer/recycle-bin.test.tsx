@@ -8,13 +8,15 @@ import { createFakeApi, WORKSPACE_SNAPSHOT } from "./fake-api";
 afterEach(cleanup);
 
 describe("recycle bin", () => {
-  it("opens the recycle-bin view from the category sidebar", async () => {
+  it("opens the independent recycle-bin workspace from the category sidebar", async () => {
     render(<App api={createFakeApi(WORKSPACE_SNAPSHOT)} />);
     await screen.findByText("coat.npk");
 
     fireEvent.click(screen.getByRole("button", { name: "回收站" }));
 
     expect(screen.getByRole("heading", { name: "回收站" })).toBeInTheDocument();
+    expect(screen.getByRole("main", { name: "回收站" })).toBeInTheDocument();
+    expect(screen.queryByRole("fieldset", { name: "启用状态" })).not.toBeInTheDocument();
   }, 15_000);
 
   it("restores an item and requires confirmation before emptying the recycle bin", async () => {

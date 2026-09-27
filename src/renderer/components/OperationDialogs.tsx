@@ -1,19 +1,15 @@
 import { type FormEvent, useState } from "react";
-import type { RecycleEntryDto } from "../../shared/ipc-contracts";
 import type { CategorySnapshot, ChildCategory } from "../../shared/library-dto";
 import type { WorkspaceItem } from "../workspace/model";
 import { Dialog } from "./Dialog";
 import { CommandButton } from "./primitives";
-import { RecycleBinDialog } from "./RecycleBinDialog";
 
-export type OperationDialog = "rename" | "move" | "recycle" | "recycle-bin" | null;
+export type OperationDialog = "rename" | "move" | "recycle" | null;
 
 type Operations = {
   readonly move: (targetDirectoryRelativePath: string) => Promise<boolean>;
   readonly recycle: () => Promise<boolean>;
-  readonly emptyRecycle: () => Promise<boolean>;
   readonly rename: (newName: string) => Promise<boolean>;
-  readonly restore: (id: string) => Promise<boolean>;
 };
 
 type OperationDialogsProps = {
@@ -21,7 +17,6 @@ type OperationDialogsProps = {
   readonly navigationSnapshot: CategorySnapshot | null;
   readonly onClose: () => void;
   readonly operations: Operations;
-  readonly recycleEntries: readonly RecycleEntryDto[];
   readonly selectedItems: readonly WorkspaceItem[];
 };
 
@@ -154,8 +149,6 @@ export function OperationDialogs(props: OperationDialogsProps): React.JSX.Elemen
       return <MoveForm {...props} />;
     case "recycle":
       return <RecycleForm onClose={props.onClose} selectedItems={props.selectedItems} />;
-    case "recycle-bin":
-      return <RecycleBinDialog {...props} />;
     default:
       return null;
   }
