@@ -161,6 +161,17 @@
   background: color-mix(in srgb, var(--color-warning) 12%, var(--color-elevated));
 }
 
+.recycle-row-delete {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.recycle-row-delete:hover:not(:disabled),
+.recycle-row-delete:focus-visible {
+  color: color-mix(in srgb, var(--color-error) 90%, #ffffff);
+}
+
 .recycle-list li > span {
   display: grid;
   min-width: 0;

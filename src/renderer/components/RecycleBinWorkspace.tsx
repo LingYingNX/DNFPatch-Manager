@@ -179,11 +179,12 @@ export function RecycleBinWorkspace({
                   </span>
                   <CommandButton
                     disabled={submitting}
+                    className="recycle-row-delete"
                     onClick={(event) => {
                       event.stopPropagation();
                       void operations.deleteRecycleItems([entry]);
                     }}
-                    variant="danger"
+                    variant="ghost"
                   >
                     删除
                   </CommandButton>
