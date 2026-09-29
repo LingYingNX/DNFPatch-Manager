@@ -119,6 +119,10 @@ export function WorkspaceApp({ client }: WorkspaceAppProps): React.JSX.Element {
     }
   }, [navigation, workspace.categoryPath]);
 
+  useEffect(() => {
+    void workspace.refreshRecycle();
+  }, [workspace.refreshRecycle]);
+
   const navigate = (next: NavigationSelection): void => {
     selection.clearSelection();
     setNavigation(next);
@@ -308,7 +312,6 @@ export function WorkspaceApp({ client }: WorkspaceAppProps): React.JSX.Element {
           }}
           onAppearance={() => setAppearanceOpen(true)}
           onRecycleBin={() => {
-            void workspace.refreshRecycle();
             navigate({ kind: "recycle" });
           }}
           onSettings={() => setSettingsOpen(true)}
@@ -323,6 +326,7 @@ export function WorkspaceApp({ client }: WorkspaceAppProps): React.JSX.Element {
           onRenameCategoryAt={workspace.renameCategoryAt}
           presetCount={presets.presets.length}
           readOnly={recovery.readOnly}
+          recycleCount={workspace.recycleEntries.length}
           onSelect={(relativePath) => navigate({ kind: "category", relativePath })}
           onSelectNavigation={navigate}
           snapshot={workspace.navigationSnapshot}

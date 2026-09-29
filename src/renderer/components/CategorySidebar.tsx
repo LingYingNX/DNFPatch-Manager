@@ -39,6 +39,7 @@ type CategorySidebarProps = {
   readonly onSelect: (relativePath: string) => void;
   readonly onSelectNavigation: (selection: NavigationSelection) => void;
   readonly onRecycleBin: () => void;
+  readonly recycleCount: number;
   readonly onAppearance: () => void;
   readonly onSettings: () => void;
   readonly onMoveCategory: (request: MoveCategoryRequest) => void;
@@ -189,6 +190,7 @@ export function CategorySidebar({
   onSelect,
   onSelectNavigation,
   onRecycleBin,
+  recycleCount,
   onAppearance,
   onSettings,
   onMoveCategory,
@@ -548,6 +550,7 @@ export function CategorySidebar({
 
       <div className="sidebar-system-nav">
         <SystemRow
+          count={recycleCount}
           icon={<Archive size={16} />}
           label="回收站"
           onClick={onRecycleBin}

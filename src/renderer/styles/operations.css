@@ -131,8 +131,18 @@
 
 .recycle-bin-list {
   position: relative;
+  flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
+}
+
+.recycle-bin-workspace {
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  flex-direction: column;
+  overflow: auto;
+  padding: var(--space-6);
 }
 
 .recycle-row {

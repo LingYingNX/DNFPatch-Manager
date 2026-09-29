@@ -91,10 +91,19 @@ export function RecycleBinWorkspace({
 
   return (
     <main className="recycle-bin-workspace" aria-label="回收站">
-      <header className="recycle-bin-heading">
-        <div>
-          <h2>回收站</h2>
-          <span className="status-chip">{recycleEntries.length} 个项目</span>
+      <header className="workspace-heading">
+        <div className="workspace-heading-actions">
+          <CommandButton
+            disabled={submitting || recycleEntries.length === 0}
+            icon={<Trash2 size={15} />}
+            onClick={() => {
+              setSelectedIds(recycleEntries.map((entry) => entry.id));
+              void operations.deleteRecycleItems(recycleEntries);
+            }}
+            variant="danger"
+          >
+            清空回收站
+          </CommandButton>
         </div>
       </header>
       {recycleEntries.length === 0 ? (
