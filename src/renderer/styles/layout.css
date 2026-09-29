@@ -13,6 +13,27 @@
 .category-sidebar {
   overflow-y: auto;
   border-right: 1px solid var(--color-border);
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-text-tertiary) 58%, transparent) transparent;
+}
+
+.category-sidebar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.category-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.category-sidebar::-webkit-scrollbar-thumb {
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-text-tertiary) 58%, transparent);
+}
+
+.category-sidebar:hover::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-text-secondary) 64%, transparent);
 }
 
 .sidebar-resize-handle {
