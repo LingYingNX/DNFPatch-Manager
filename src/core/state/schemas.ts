@@ -47,7 +47,7 @@ export function emptyInstallationState(): InstallationState {
   return { formatVersion: 1, records: [] };
 }
 
-const HexColorSchema = z.string().regex(/^#[A-Fa-f0-9]{6}$/u);
+const HexColorSchema = z.string().regex(/^#[A-Fa-f0-9]{6}(?:[A-Fa-f0-9]{2})?$/u);
 
 const AppearanceSettingsValueSchema = z.object({
   theme: z.union([z.literal("halo"), z.literal("glass"), z.literal("high-contrast")]),
@@ -61,8 +61,8 @@ const AppearanceSettingsValueSchema = z.object({
   positionY: z.number().min(0).max(100),
   categoryTextColor: HexColorSchema,
   selectedTint: HexColorSchema,
-  navigationFontColor: HexColorSchema.default("#F2F4F8"),
-  patchCardFontColor: HexColorSchema.default("#F2F4F8"),
+  navigationFontColor: HexColorSchema.default("#F2F4F8FF"),
+  patchCardFontColor: HexColorSchema.default("#F2F4F8FF"),
 });
 
 export const AppearanceSettingsSchema = z.preprocess((value) => {
@@ -112,8 +112,8 @@ export function defaultAppearanceSettings(): AppearanceSettings {
     ...defaultWallpaperControls(),
     categoryTextColor: "#9AA0AE",
     selectedTint: "#5B6BFF",
-    navigationFontColor: "#F2F4F8",
-    patchCardFontColor: "#F2F4F8",
+    navigationFontColor: "#F2F4F8FF",
+    patchCardFontColor: "#F2F4F8FF",
   };
 }
 

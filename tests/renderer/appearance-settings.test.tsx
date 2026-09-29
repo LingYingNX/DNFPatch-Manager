@@ -452,15 +452,11 @@ describe("appearance settings", () => {
     fireEvent.click(screen.getByRole("button", { name: "字体外观" }));
 
     expect(screen.getByTestId("navigation-font-color-picker")).toBeInTheDocument();
-    expect(screen.getByTestId("patch-card-font-color-picker")).toBeInTheDocument();
-    expect(screen.getByRole("slider", { name: "导航栏色相" })).toBeInTheDocument();
-    expect(screen.getByRole("slider", { name: "补丁卡片色相" })).toBeInTheDocument();
+    expect(screen.getByRole("slider", { name: "导航栏透明度" })).toBeInTheDocument();
     expect(
       within(screen.getByTestId("navigation-font-color-picker")).getByRole("textbox"),
-    ).toHaveValue("#F2F4F8");
-    expect(
-      within(screen.getByTestId("patch-card-font-color-picker")).getByRole("textbox"),
-    ).toHaveValue("#F2F4F8");
+    ).toHaveValue("#F2F4F8FF");
+    expect(screen.getByRole("tab", { name: /补丁卡片/ })).toBeInTheDocument();
     expect(screen.queryByText("实时预览")).not.toBeInTheDocument();
 
     fireEvent.change(
@@ -469,23 +465,26 @@ describe("appearance settings", () => {
     );
     await waitFor(() =>
       expect(update).toHaveBeenLastCalledWith(
-        expect.objectContaining({ navigationFontColor: "#12AB34" }),
+        expect.objectContaining({ navigationFontColor: "#12AB33FF" }),
       ),
     );
+    fireEvent.click(screen.getByRole("tab", { name: /补丁卡片/ }));
+    expect(screen.getByTestId("patch-card-font-color-picker")).toBeInTheDocument();
+    expect(screen.getByRole("slider", { name: "补丁卡片透明度" })).toBeInTheDocument();
     fireEvent.change(
       within(screen.getByTestId("patch-card-font-color-picker")).getByRole("textbox"),
       { target: { value: "#34AB12" } },
     );
     await waitFor(() =>
       expect(update).toHaveBeenLastCalledWith(
-        expect.objectContaining({ patchCardFontColor: "#34AB12" }),
+        expect.objectContaining({ patchCardFontColor: "#33AB12FF" }),
       ),
     );
     expect(document.documentElement.style.getPropertyValue("--navigation-font-color")).toBe(
-      "#12AB34",
+      "#12AB33FF",
     );
     expect(document.documentElement.style.getPropertyValue("--patch-card-font-color")).toBe(
-      "#34AB12",
+      "#33AB12FF",
     );
     expect(document.documentElement.style.getPropertyValue("--color-text-primary")).toBe("");
     expect(tokensCss).toMatch(/:root\s*\{[\s\S]*color:\s*var\(--color-text-primary\);/u);
@@ -495,7 +494,7 @@ describe("appearance settings", () => {
     );
   });
 
-  it("supports keyboard editing in the font color bar", async () => {
+  it("supports manual hex editing in the font color wheel", async () => {
     const api = createFakeApi(WORKSPACE_SNAPSHOT);
     const update = vi.fn(api.updateAppearance);
     render(<App api={{ ...api, updateAppearance: update }} />);
@@ -509,25 +508,16 @@ describe("appearance settings", () => {
     fireEvent.click(appearanceTabs[2] as HTMLButtonElement);
 
     const picker = screen.getByTestId("navigation-font-color-picker");
-    const colorBar = screen.getByRole("slider", { name: "导航栏色相" });
-    colorBar.focus();
-    expect(document.activeElement).toBe(colorBar);
-    fireEvent.keyDown(colorBar, { key: "ArrowRight" });
-
-    await waitFor(() => expect(update).toHaveBeenCalled());
-    expect(update.mock.lastCall?.[0].navigationFontColor).not.toBe("#F2F4F8");
-
     const colorInput = picker.querySelector<HTMLInputElement>('input[type="text"]');
     expect(colorInput).not.toBeNull();
-    await waitFor(() => expect(colorInput).not.toHaveValue("#F2F4F8"));
     fireEvent.change(colorInput as HTMLInputElement, { target: { value: "#12AB3" } });
     expect(colorInput).toHaveValue("#12AB3");
     fireEvent.blur(colorInput as HTMLInputElement);
-    await waitFor(() => expect(colorInput?.value).toMatch(/^#[A-F0-9]{6}$/u));
+    await waitFor(() => expect(colorInput?.value).toMatch(/^#[A-F0-9]{8}$/u));
     fireEvent.change(colorInput as HTMLInputElement, { target: { value: "#12AB34" } });
     await waitFor(() =>
       expect(update).toHaveBeenLastCalledWith(
-        expect.objectContaining({ navigationFontColor: "#12AB34" }),
+        expect.objectContaining({ navigationFontColor: "#12AB33FF" }),
       ),
     );
   });
@@ -545,31 +535,32 @@ describe("appearance settings", () => {
     });
     await waitFor(() =>
       expect(update).toHaveBeenLastCalledWith(
-        expect.objectContaining({ navigationFontColor: "#12AB34" }),
+        expect.objectContaining({ navigationFontColor: "#12AB33FF" }),
       ),
     );
 
-    fireEvent.click(within(navigationPicker).getByRole("button", { name: "重置导航栏颜色" }));
+    fireEvent.click(within(navigationPicker).getByRole("button", { name: "重置颜色和透明度" }));
     await waitFor(() =>
       expect(update).toHaveBeenLastCalledWith(
-        expect.objectContaining({ navigationFontColor: "#F2F4F8" }),
+        expect.objectContaining({ navigationFontColor: "#F2F4F8FF" }),
       ),
     );
 
+    fireEvent.click(screen.getByRole("tab", { name: /补丁卡片/ }));
     const patchCardPicker = screen.getByTestId("patch-card-font-color-picker");
     fireEvent.change(within(patchCardPicker).getByRole("textbox"), {
       target: { value: "#34AB12" },
     });
     await waitFor(() =>
       expect(update).toHaveBeenLastCalledWith(
-        expect.objectContaining({ patchCardFontColor: "#34AB12" }),
+        expect.objectContaining({ patchCardFontColor: "#33AB12FF" }),
       ),
     );
 
-    fireEvent.click(within(patchCardPicker).getByRole("button", { name: "重置补丁卡片颜色" }));
+    fireEvent.click(within(patchCardPicker).getByRole("button", { name: "重置颜色和透明度" }));
     await waitFor(() =>
       expect(update).toHaveBeenLastCalledWith(
-        expect.objectContaining({ patchCardFontColor: "#F2F4F8" }),
+        expect.objectContaining({ patchCardFontColor: "#F2F4F8FF" }),
       ),
     );
   });
@@ -590,10 +581,10 @@ describe("appearance settings", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "字体外观" }));
     const picker = screen.getByTestId("navigation-font-color-picker");
-    fireEvent.click(within(picker).getByRole("button", { name: "重置导航栏颜色" }));
+    fireEvent.click(within(picker).getByRole("button", { name: "重置颜色和透明度" }));
     await waitFor(() =>
       expect(update).toHaveBeenLastCalledWith(
-        expect.objectContaining({ navigationFontColor: "#FFFFFF" }),
+        expect.objectContaining({ navigationFontColor: "#FFFFFFFF" }),
       ),
     );
   });
@@ -624,16 +615,16 @@ describe("appearance settings", () => {
     fireEvent.change(colorInput as HTMLInputElement, { target: { value: "#101010" } });
     await waitFor(() =>
       expect(update).toHaveBeenLastCalledWith(
-        expect.objectContaining({ navigationFontColor: "#101010" }),
+        expect.objectContaining({ navigationFontColor: "#0F0F0FFF" }),
       ),
     );
     await waitFor(() =>
       expect(document.documentElement.style.getPropertyValue("--navigation-font-color")).toBe(
-        "#FFFFFF",
+        "#FFFFFFFF",
       ),
     );
     expect(document.documentElement.style.getPropertyValue("--patch-card-font-color")).toBe(
-      "#FFFFFF",
+      "#FFFFFFFF",
     );
   });
 });

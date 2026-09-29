@@ -16,8 +16,8 @@ const appearanceState = {
     positionY: 50,
     categoryTextColor: "#9AA0AE",
     selectedTint: "#5B6BFF",
-    navigationFontColor: "#F2F4F8",
-    patchCardFontColor: "#F2F4F8",
+    navigationFontColor: "#F2F4F8FF",
+    patchCardFontColor: "#F2F4F8FF",
   },
   wallpaper: {
     slots: [null, null, null, null, null] as [null, null, null, null, null],

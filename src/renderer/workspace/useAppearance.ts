@@ -36,9 +36,9 @@ export function useAppearance(
     const temperatureHue =
       appearance.temperature > 0 ? -temperatureMagnitude * 18 : temperatureMagnitude * 18;
     const navigationFontColor =
-      appearance.theme === "high-contrast" ? "#FFFFFF" : appearance.navigationFontColor;
+      appearance.theme === "high-contrast" ? "#FFFFFFFF" : appearance.navigationFontColor;
     const patchCardFontColor =
-      appearance.theme === "high-contrast" ? "#FFFFFF" : appearance.patchCardFontColor;
+      appearance.theme === "high-contrast" ? "#FFFFFFFF" : appearance.patchCardFontColor;
     root.dataset["theme"] = appearance.theme;
     root.style.setProperty("--appearance-temperature", `${appearance.temperature}`);
     root.style.setProperty("--appearance-saturation", `${appearance.saturation}%`);
