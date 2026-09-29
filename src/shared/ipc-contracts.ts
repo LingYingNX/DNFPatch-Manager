@@ -243,6 +243,7 @@ export const RecycleEntryDtoSchema = z.object({
   originalRelativePath: ItemRelativePathSchema,
   recycledRelativePath: ItemRelativePathSchema,
   recycledAt: z.string().datetime(),
+  size: z.number().int().nonnegative().nullable(),
 });
 export type RecycleEntryDto = z.infer<typeof RecycleEntryDtoSchema>;
 

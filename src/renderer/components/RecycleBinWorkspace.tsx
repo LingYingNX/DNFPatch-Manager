@@ -175,7 +175,10 @@ export function RecycleBinWorkspace({
                 >
                   <span>
                     <strong>{entry.originalRelativePath}</strong>
-                    <small>{entry.kind === "group" ? "补丁组" : "NPK 补丁"}</small>
+                    <small>
+                      {entry.kind === "group" ? "补丁组" : "NPK 补丁"}
+                      {entry.size === null ? "" : ` · ${formatRecycleSize(entry.size)}`}
+                    </small>
                   </span>
                   <CommandButton
                     disabled={submitting}
@@ -226,4 +229,10 @@ export function RecycleBinWorkspace({
       />
     </main>
   );
+}
+
+function formatRecycleSize(size: number): string {
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / 1024 / 1024).toFixed(1)} MB`;
 }

@@ -49,6 +49,7 @@ describe("recycle service", () => {
           originalRelativePath: "分类A\\coat.npk",
           recycledRelativePath: "a2021aa5-e024-4106-a0a3-f0874d4c9ec9\\coat.npk",
           recycledAt: "2026-07-18T00:00:00.000Z",
+          size: 4,
         },
       ],
     });

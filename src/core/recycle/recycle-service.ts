@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readdir, rename, rm } from "node:fs/promises";
+import { mkdir, readdir, rename, rm, stat } from "node:fs/promises";
 import { win32 } from "node:path";
 import type { DataRoot, LibraryRoot } from "../../main/app-paths";
 import { err, ok, type Result } from "../../shared/result";
@@ -74,7 +74,9 @@ export interface RecycleService {
   recycleMany(
     items: readonly RecycleItem[],
   ): Promise<Result<{ readonly entries: readonly RecycleEntry[] }, RecycleServiceError>>;
-  list(): Promise<Result<readonly RecycleEntry[], StateStoreError>>;
+  list(): Promise<
+    Result<readonly (RecycleEntry & { readonly size: number | null })[], StateStoreError>
+  >;
   recycle(
     request:
       | {
@@ -125,7 +127,21 @@ export function createRecycleService(options: RecycleServiceOptions): RecycleSer
     },
     async list() {
       const snapshot = await readRecycleManifest(store);
-      return snapshot.ok ? ok(snapshot.value.manifest.items) : snapshot;
+      if (!snapshot.ok) return snapshot;
+      const items = await Promise.all(
+        snapshot.value.manifest.items.map(async (entry) => {
+          const recycledPath = resolveRecyclePath(recycleRoot, entry.recycledRelativePath);
+          if (recycledPath === null) return { ...entry, size: null };
+          try {
+            const metadata = await stat(recycledPath);
+            return { ...entry, size: metadata.isFile() ? metadata.size : null };
+          } catch (error) {
+            if (isNotFoundError(error)) return { ...entry, size: null };
+            throw error;
+          }
+        }),
+      );
+      return ok(items);
     },
 
     async recycle(request) {
