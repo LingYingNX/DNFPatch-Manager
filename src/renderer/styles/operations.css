@@ -162,14 +162,18 @@
 }
 
 .recycle-row-delete {
+  border: 1px solid color-mix(in srgb, var(--color-error) 38%, transparent);
+  color: var(--color-text-primary);
   height: 28px;
   padding: 0 10px;
+  background: color-mix(in srgb, var(--color-canvas) 88%, var(--color-error) 12%);
   font-size: 12px;
 }
 
 .recycle-row-delete:hover:not(:disabled),
 .recycle-row-delete:focus-visible {
-  color: color-mix(in srgb, var(--color-error) 90%, #ffffff);
+  border-color: color-mix(in srgb, var(--color-error) 64%, transparent);
+  background: color-mix(in srgb, var(--color-canvas) 80%, var(--color-error) 20%);
 }
 
 .recycle-list li > span {
