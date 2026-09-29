@@ -708,6 +708,7 @@ describe("workspace operations", () => {
 
   it("recycles selected items without a confirmation dialog", async () => {
     const recycled: Array<Parameters<DnfApi["recycleItems"]>[0]> = [];
+    let recycleCountRefreshes = 0;
     let singleCalls = 0;
     const api: DnfApi = {
       ...createFakeApi(WORKSPACE_SNAPSHOT),
@@ -719,6 +720,10 @@ describe("workspace operations", () => {
         recycled.push(request);
         return { ok: true, value: { ids: ["a2021aa5-e024-4106-a0a3-f0874d4c9ec9"] } };
       },
+      listRecycle: async () => {
+        recycleCountRefreshes += 1;
+        return createFakeApi(WORKSPACE_SNAPSHOT).listRecycle();
+      },
     };
     render(<App api={api} />);
     await screen.findByText("sword.npk");
@@ -728,6 +733,7 @@ describe("workspace operations", () => {
     await waitFor(() =>
       expect(recycled).toEqual([{ items: [{ kind: "patch", relativePath: "sword.npk" }] }]),
     );
+    await waitFor(() => expect(recycleCountRefreshes).toBeGreaterThan(0));
     expect(singleCalls).toBe(0);
   });
 

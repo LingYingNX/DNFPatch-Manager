@@ -243,7 +243,12 @@ export function WorkspaceApp({ client }: WorkspaceAppProps): React.JSX.Element {
             return;
           }
           setOperationBusy(true);
-          void operations.recycle().finally(() => setOperationBusy(false));
+          void operations
+            .recycle()
+            .finally(() => {
+              void workspace.refreshRecycle();
+            })
+            .finally(() => setOperationBusy(false));
         }}
         onRenameItem={(item, newName) => {
           setOperationBusy(true);
