@@ -32,6 +32,7 @@ import {
   AddGroupMembersRequestSchema,
   type ApiResult,
   CreateGroupRequestSchema,
+  DeleteRecycleItemsRequestSchema,
   DissolveGroupRequestSchema,
   EmptyRecycleRequestSchema,
   InstallBatchRequestSchema,
@@ -342,6 +343,10 @@ export async function registerIpc(
     const result = await recycle.restore(request);
     return toApiResult(result);
   });
+
+  register(IPC_CHANNELS.deleteRecycleItems, DeleteRecycleItemsRequestSchema, (request) =>
+    mutationMutex.runExclusive(async () => toApiResult(await recycle.deleteMany(request))),
+  );
 
   register(IPC_CHANNELS.emptyRecycle, EmptyRecycleRequestSchema, async (request) =>
     toApiResult(await recycle.empty(request)),

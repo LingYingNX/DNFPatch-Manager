@@ -84,6 +84,19 @@ export type PreviewService = {
     readonly kind: "patch" | "group";
     readonly originalRelativePath: string;
   }) => Promise<Result<{ readonly steps: readonly FileTransactionStep[] }, StateStoreError>>;
+  readonly prepareDeleteMany: (
+    entries: readonly {
+      readonly id: string;
+    }[],
+  ) => Promise<
+    Result<
+      {
+        readonly steps: readonly FileTransactionStep[];
+        readonly cleanup: () => Promise<void>;
+      },
+      StateStoreError
+    >
+  >;
 };
 
 type PreviewServiceOptions = {
@@ -456,6 +469,36 @@ export function createPreviewService(options: PreviewServiceOptions): PreviewSer
           ]
         : [];
       return ok({ steps });
+    },
+    async prepareDeleteMany(entries) {
+      const current = await readPreviewState(options.store);
+      if (!current.ok) return current;
+      const deletedIds = new Set(entries.map((entry) => entry.id));
+      const removedBindings = current.value.bindings.filter(
+        (binding) => binding.state === "recycled" && deletedIds.has(binding.recycleEntryId),
+      );
+      if (removedBindings.length === 0) return ok({ steps: [], cleanup: async () => {} });
+      const assetNames = removedBindings.map((binding) => binding.assetName);
+      const next: PreviewState = {
+        ...current.value,
+        bindings: current.value.bindings.filter(
+          (binding) => binding.state !== "recycled" || !deletedIds.has(binding.recycleEntryId),
+        ),
+      };
+      return ok({
+        steps: [
+          {
+            apply: () => writePreviewState(options.store, next),
+            compensate: () => writePreviewState(options.store, current.value),
+          },
+        ],
+        cleanup: async () => {
+          for (const assetName of assetNames) {
+            const removed = await options.assets.remove(assetName);
+            if (!removed.ok) throw new Error("Unable to remove recycled preview asset");
+          }
+        },
+      });
     },
   };
 }

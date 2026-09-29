@@ -124,14 +124,18 @@
 .recycle-list {
   display: grid;
   gap: var(--space-2);
-  max-height: 280px;
   margin: 0;
   padding: 0;
-  overflow-y: auto;
   list-style: none;
 }
 
-.recycle-list li {
+.recycle-bin-list {
+  position: relative;
+  min-height: 0;
+  overflow: auto;
+}
+
+.recycle-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -140,6 +144,11 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-control);
   background: var(--color-elevated);
+}
+
+.recycle-row[data-selected="true"] {
+  border-color: var(--color-warning);
+  background: color-mix(in srgb, var(--color-warning) 12%, var(--color-elevated));
 }
 
 .recycle-list li > span {
@@ -156,6 +165,14 @@
 .recycle-list small {
   color: var(--color-text-secondary);
   font-size: 11px;
+}
+
+.recycle-selection-box {
+  position: fixed;
+  z-index: 20;
+  border: 1px solid var(--color-primary-hover);
+  background: rgba(91, 107, 255, 0.16);
+  pointer-events: none;
 }
 
 .dialog-confirm-label {

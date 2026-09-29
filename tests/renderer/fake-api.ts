@@ -170,6 +170,10 @@ export function createFakeApi(snapshot: CategorySnapshot): DnfApi {
       ok: true,
       value: { ids: items.map(() => "a2021aa5-e024-4106-a0a3-f0874d4c9ec9") },
     }),
+    deleteRecycleItems: async ({ ids }) => ({
+      ok: true,
+      value: { deletedIds: [...ids] },
+    }),
     restoreItem: async () => ({ ok: true, value: { relativePath: "分类A\\coat.npk" } }),
     emptyRecycle: async () => ({ ok: true, value: { removedCount: 1 } }),
     listRecycle: async () => ({ ok: true, value: { items: [] } }),

@@ -19,9 +19,8 @@ describe("recycle bin", () => {
     expect(screen.queryByRole("fieldset", { name: "启用状态" })).not.toBeInTheDocument();
   }, 15_000);
 
-  it("restores an item and requires confirmation before emptying the recycle bin", async () => {
-    let restoredId: string | undefined;
-    let emptied = false;
+  it("deletes a selected recycled item permanently", async () => {
+    const deletedIds: string[] = [];
     const api: DnfApi = {
       ...createFakeApi(WORKSPACE_SNAPSHOT),
       listRecycle: async () => ({
@@ -38,13 +37,9 @@ describe("recycle bin", () => {
           ],
         },
       }),
-      restoreItem: async ({ id }) => {
-        restoredId = id;
-        return { ok: true, value: { relativePath: "分类A\\coat.npk" } };
-      },
-      emptyRecycle: async () => {
-        emptied = true;
-        return { ok: true, value: { removedCount: 1 } };
+      deleteRecycleItems: async ({ ids }) => {
+        deletedIds.push(...ids);
+        return { ok: true, value: { deletedIds: [...ids] } };
       },
     };
     render(<App api={api} />);
@@ -52,13 +47,9 @@ describe("recycle bin", () => {
     fireEvent.click(screen.getByRole("button", { name: "回收站" }));
     expect(await screen.findByText("分类A\\coat.npk")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "恢复" }));
-    await waitFor(() => expect(restoredId).toBe("a2021aa5-e024-4106-a0a3-f0874d4c9ec9"));
-    expect(emptied).toBe(false);
-    fireEvent.click(screen.getByRole("button", { name: "清空回收站" }));
-    expect(screen.getByText("确定清空全部回收项目？")).toBeInTheDocument();
-    expect(emptied).toBe(false);
-    fireEvent.click(screen.getByRole("button", { name: "确认清空" }));
-    await waitFor(() => expect(emptied).toBe(true));
+    expect(screen.queryByRole("button", { name: "清空回收站" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText("分类A\\coat.npk"));
+    fireEvent.click(screen.getByRole("button", { name: "删除" }));
+    await waitFor(() => expect(deletedIds).toEqual(["a2021aa5-e024-4106-a0a3-f0874d4c9ec9"]));
   });
 });

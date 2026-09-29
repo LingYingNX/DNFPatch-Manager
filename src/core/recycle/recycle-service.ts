@@ -89,6 +89,9 @@ export interface RecycleService {
   restore(request: {
     readonly id: string;
   }): Promise<Result<{ readonly relativePath: string }, RecycleServiceError>>;
+  deleteMany(request: {
+    readonly ids: readonly string[];
+  }): Promise<Result<{ readonly deletedIds: readonly string[] }, RecycleServiceError>>;
   empty(request: {
     readonly confirmed: boolean;
   }): Promise<Result<{ readonly removedCount: number }, RecycleServiceError>>;
@@ -183,6 +186,73 @@ export function createRecycleService(options: RecycleServiceOptions): RecycleSer
         }
         await rm(win32.dirname(recycledPath), { force: true, recursive: true });
         return ok({ relativePath: entry.originalRelativePath });
+      } catch (error) {
+        if (error instanceof Error) {
+          return err({ code: "RECYCLE_IO" });
+        }
+        throw error;
+      }
+    },
+
+    async deleteMany(request) {
+      const ids = [...new Set(request.ids)];
+      if (ids.length === 0) return err({ code: "RECYCLE_IO" });
+      const snapshot = await readRecycleManifest(store);
+      if (!snapshot.ok) {
+        return snapshot;
+      }
+      const requestedIds = new Set(ids);
+      const entries = snapshot.value.manifest.items.filter((item) => requestedIds.has(item.id));
+      if (entries.length !== ids.length) {
+        return err({ code: "RECYCLE_ITEM_NOT_FOUND", id: request.ids[0] ?? "" });
+      }
+
+      try {
+        for (const entry of entries) {
+          const recycledPath = resolveRecyclePath(recycleRoot, entry.recycledRelativePath);
+          if (recycledPath === null || !(await pathExists(recycledPath))) {
+            return err({ code: "RECYCLE_IO" });
+          }
+        }
+        const deletedIds = entries.map((entry) => entry.id);
+        const nextManifest: RecycleManifest = {
+          ...snapshot.value.manifest,
+          items: snapshot.value.manifest.items.filter((item) => !requestedIds.has(item.id)),
+        };
+        const previewPlan = options.previews
+          ? await options.previews.prepareDeleteMany(entries)
+          : ok({ steps: [], cleanup: async () => {} });
+        if (!previewPlan.ok) return previewPlan;
+        const steps: FileTransactionStep[] = [
+          ...entries.map(
+            (entry): FileTransactionStep => ({
+              apply: async () => {
+                const recycledPath = resolveRecyclePath(recycleRoot, entry.recycledRelativePath);
+                if (recycledPath === null) throw new Error("Invalid recycle path");
+                await rm(win32.dirname(recycledPath), { force: true, recursive: true });
+              },
+              compensate: async () => {
+                // 已删除的回收文件没有保留副本，事务只能保证清单一致后停止。
+                throw new Error("Recycled file deletion cannot be compensated");
+              },
+            }),
+          ),
+          {
+            apply: () => writeRecycleManifest(store, nextManifest),
+            compensate: () => writeRecycleManifest(store, snapshot.value.manifest),
+          },
+          ...previewPlan.value.steps,
+        ];
+        const transaction = await executeFileTransaction(steps);
+        if (!transaction.ok) {
+          return transaction;
+        }
+        await previewPlan.value.cleanup();
+        for (const entry of entries) {
+          if (entry.kind !== "patch") continue;
+          await removeMatchingLibraryPreview(options.libraryRoot, entry.originalRelativePath);
+        }
+        return ok({ deletedIds });
       } catch (error) {
         if (error instanceof Error) {
           return err({ code: "RECYCLE_IO" });
