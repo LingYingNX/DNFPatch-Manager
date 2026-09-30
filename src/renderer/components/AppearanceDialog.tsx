@@ -383,33 +383,38 @@ function FontColorWorkspace({
   if (activeControl === undefined) throw new Error("Unknown font color target");
   return (
     <div className="appearance-font-colors">
-      <div aria-label="颜色目标" className="appearance-font-tabs" role="tablist">
-        {FONT_COLOR_CONTROLS.map((control) => {
-          const active = control.key === activeKey;
-          const parsed = hexToHsla(appearance[control.key]);
-          return (
-            <button
-              aria-selected={active}
-              className="appearance-font-tab"
-              data-active={active}
-              key={control.key}
-              onClick={() => onActiveKeyChange(control.key)}
-              role="tab"
-              type="button"
-            >
-              <span aria-hidden="true" className="checkered-pattern appearance-tab-dot">
-                <span
-                  className="appearance-tab-dot-color"
-                  style={{ background: appearance[control.key] }}
-                />
-              </span>
-              <span>{control.label}</span>
-              <output>
-                {appearance[control.key].slice(1, 7)} · {parsed?.alpha ?? 100}%
-              </output>
-            </button>
-          );
-        })}
+      <div className="appearance-font-sidebar">
+        <span className="appearance-font-sidebar-label">选择配置目标</span>
+        <div aria-label="颜色目标" className="appearance-font-tabs" role="tablist">
+          {FONT_COLOR_CONTROLS.map((control) => {
+            const active = control.key === activeKey;
+            const parsed = hexToHsla(appearance[control.key]);
+            return (
+              <button
+                aria-selected={active}
+                className="appearance-font-tab"
+                data-active={active}
+                key={control.key}
+                onClick={() => onActiveKeyChange(control.key)}
+                role="tab"
+                type="button"
+              >
+                <span className="appearance-font-tab-header">
+                  <span aria-hidden="true" className="checkered-pattern appearance-tab-dot">
+                    <span
+                      className="appearance-tab-dot-color"
+                      style={{ background: appearance[control.key] }}
+                    />
+                  </span>
+                  <span>{control.label}</span>
+                </span>
+                <output>
+                  {appearance[control.key].slice(1, 7).toUpperCase()} · {parsed?.alpha ?? 100}%
+                </output>
+              </button>
+            );
+          })}
+        </div>
       </div>
       <FontColorPicker
         color={appearance[activeControl.key]}

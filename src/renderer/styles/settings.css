@@ -688,45 +688,64 @@
 
 .appearance-font-colors {
   display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
   align-content: start;
-  gap: 14px;
+  align-items: stretch;
+  gap: 12px;
   min-width: 0;
+  height: 100%;
+}
+
+.appearance-font-sidebar {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-canvas) 78%, transparent);
+}
+
+.appearance-font-sidebar-label {
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  font-weight: 600;
 }
 
 .appearance-font-tabs {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
-  padding: 4px;
-  border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--color-canvas) 68%, transparent);
 }
 
 .appearance-font-tab {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px;
+  min-width: 0;
+  padding: 8px;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
+  border-radius: 8px;
+  color: var(--color-text-secondary);
+  background: color-mix(in srgb, var(--color-canvas) 86%, transparent);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  text-align: left;
+}
+
+.appearance-font-tab[aria-selected="true"] {
+  border-color: color-mix(in srgb, var(--color-primary) 58%, transparent);
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--color-elevated) 94%, transparent);
+}
+
+.appearance-font-tab-header {
   display: flex;
   min-width: 0;
   align-items: center;
   gap: 6px;
-  min-height: 32px;
-  padding: 0 8px;
-  border: 1px solid transparent;
-  border-radius: 7px;
-  color: var(--color-text-secondary);
-  background: transparent;
-  cursor: pointer;
-  font-size: 11px;
-  font-weight: 500;
-}
-
-.appearance-font-tab[aria-selected="true"] {
-  border-color: color-mix(in srgb, var(--color-border-strong) 78%, transparent);
-  color: var(--color-text-primary);
-  background: color-mix(in srgb, var(--color-elevated) 92%, transparent);
-}
-
-.appearance-font-tab span:nth-child(2) {
-  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -734,6 +753,7 @@
 
 .appearance-font-tab output {
   flex: 0 0 auto;
+  align-self: center;
   color: color-mix(in srgb, var(--color-text-secondary) 86%, transparent);
   font-family: "Cascadia Mono", Consolas, monospace;
   font-size: 10px;
@@ -823,12 +843,14 @@
 .appearance-font-color-picker-body {
   display: grid;
   place-items: center;
+  min-height: 0;
+  flex: 1 1 auto;
 }
 
 .appearance-color-wheel {
   position: relative;
-  width: 136px;
-  height: 136px;
+  width: 168px;
+  height: 168px;
   overflow: hidden;
   touch-action: none;
   user-select: none;
