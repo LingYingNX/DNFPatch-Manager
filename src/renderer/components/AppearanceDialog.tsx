@@ -297,7 +297,7 @@ function FontColorPicker({
             draggingRef.current = false;
           }}
         >
-          <canvas height={136} ref={canvasRef} width={136} />
+          <canvas height={200} ref={canvasRef} width={200} />
           <span
             aria-hidden="true"
             className="appearance-color-wheel-pointer"
@@ -403,8 +403,8 @@ function FontColorWorkspace({
   if (activeControl === undefined) throw new Error("Unknown font color target");
   return (
     <div className="appearance-font-colors">
-      <div className="appearance-font-sidebar">
-        <span className="appearance-font-sidebar-label">选择配置目标</span>
+      <div className="appearance-font-targets">
+        <span className="appearance-font-target-label">选择配置目标</span>
         <div aria-label="颜色目标" className="appearance-font-tabs" role="tablist">
           {FONT_COLOR_CONTROLS.map((control) => {
             const active = control.key === activeKey;
@@ -419,16 +419,14 @@ function FontColorWorkspace({
                 role="tab"
                 type="button"
               >
-                <span className="appearance-font-tab-header">
-                  <span aria-hidden="true" className="checkered-pattern appearance-tab-dot">
-                    <span
-                      className="appearance-tab-dot-color"
-                      style={{ background: appearance[control.key] }}
-                    />
-                  </span>
-                  <span>{control.label}</span>
+                <span aria-hidden="true" className="checkered-pattern appearance-tab-dot">
+                  <span
+                    className="appearance-tab-dot-color"
+                    style={{ background: appearance[control.key] }}
+                  />
                 </span>
-                <output>
+                <span className="appearance-font-tab-name">{control.label}</span>
+                <output className="appearance-font-tab-meta">
                   {appearance[control.key].slice(1, 7).toUpperCase()} · {parsed?.alpha ?? 100}%
                 </output>
               </button>
