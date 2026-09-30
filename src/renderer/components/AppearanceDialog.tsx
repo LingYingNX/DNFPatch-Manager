@@ -434,6 +434,7 @@ function FontColorWorkspace({
           })}
         </div>
       </div>
+      <span aria-hidden="true" className="appearance-font-divider" />
       <FontColorPicker
         color={appearance[activeControl.key]}
         defaultValue={defaultFontColor(activeControl.key, appearance)}
