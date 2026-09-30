@@ -308,6 +308,20 @@ function FontColorPicker({
           />
         </div>
       </div>
+      <div className="appearance-color-hue">
+        <div className="appearance-color-alpha-label">
+          <span>色相</span>
+          <output>{dragColor.hue}°</output>
+        </div>
+        <input
+          aria-label={`${label}色相`}
+          max={360}
+          min={0}
+          onChange={(event) => update({ ...dragColor, hue: Number(event.currentTarget.value) })}
+          type="range"
+          value={dragColor.hue}
+        />
+      </div>
       <div className="appearance-color-alpha">
         <span>透明度</span>
         <input
@@ -363,6 +377,20 @@ function FontColorPicker({
         >
           <RotateCcw size={13} />
         </button>
+      </div>
+      <div className="appearance-color-hue">
+        <div className="appearance-color-alpha-label">
+          <span>色相</span>
+          <output>{dragColor.hue}°</output>
+        </div>
+        <input
+          aria-label={`${label}色相`}
+          max={360}
+          min={0}
+          onChange={(event) => update({ ...dragColor, hue: Number(event.currentTarget.value) })}
+          type="range"
+          value={dragColor.hue}
+        />
       </div>
     </div>
   );
