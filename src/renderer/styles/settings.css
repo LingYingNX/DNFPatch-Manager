@@ -882,20 +882,9 @@
   gap: 8px;
 }
 
-.appearance-color-hue,
-.appearance-color-alpha {
+.appearance-color-row {
   display: grid;
   gap: 6px;
-  padding: 8px;
-  border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
-  border-radius: 8px;
-  color: var(--color-text-secondary);
-  background: color-mix(in srgb, var(--color-canvas) 70%, transparent);
-  font-size: 11px;
-}
-
-.appearance-color-hue {
-  grid-template-columns: minmax(0, 1fr);
 }
 
 .appearance-color-alpha-label {
@@ -904,15 +893,15 @@
   justify-content: space-between;
 }
 
-.appearance-color-hue output {
+.appearance-color-row output {
   color: var(--color-text-primary);
   font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 11px;
 }
 
-.appearance-color-hue input[type="range"] {
+.appearance-color-row input[type="range"] {
   position: relative;
-  height: 8px;
-  border: 1px solid var(--color-border-strong);
+  height: 14px;
   border-radius: var(--radius-pill);
   background: linear-gradient(
     to right,
@@ -924,13 +913,6 @@
     #ff00ff 83%,
     #ff0000 100%
   );
-}
-
-.appearance-color-alpha input[type="range"] {
-  position: relative;
-  height: 8px;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-pill);
 }
 
 .appearance-color-alpha output {
