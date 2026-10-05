@@ -7,8 +7,8 @@
 set -uo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-NEW_INSTALLER="$PROJECT_ROOT/dist/dnf-patch-manager-1.2.8-setup.exe"
-OLD_INSTALLER="${1:-$PROJECT_ROOT/dist/dnf-patch-manager-1.2.7-setup.exe}"
+NEW_INSTALLER="$PROJECT_ROOT/dist/dnf-patch-manager-1.2.9-setup.exe"
+OLD_INSTALLER="${1:-$PROJECT_ROOT/dist/dnf-patch-manager-1.2.8-setup.exe}"
 
 for file in "$NEW_INSTALLER" "$OLD_INSTALLER"; do
   if [ ! -f "$file" ]; then

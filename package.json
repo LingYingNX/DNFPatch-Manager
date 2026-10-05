@@ -1,6 +1,6 @@
 {
   "name": "dnf-patch-manager-rewrite",
-  "version": "1.2.8",
+  "version": "1.2.9",
   "description": "DNF patch manager desktop application rewrite",
   "type": "module",
   "main": "out/main/main.js",

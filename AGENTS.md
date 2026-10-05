@@ -48,7 +48,7 @@ pnpm verify:no-dup-helpers       # 拒绝重复的路径/状态辅助实现
 pnpm doctor                      # react-doctor 诊断
 ```
 
-日常启动：直接双击 `启动DNF补丁管理器.bat`；启动器自动对比 `src/`、`package.json`、`electron.vite.config.ts` 与 `out/` 产物的修改时间，源码较新时先执行 `pnpm build` 再启动，因此双击启动总能看到最新源码改动。`--check` 只检查并按需构建不启动，`--repair` 强制重建。仓库 Bash 脚本（如 `pnpm verify:nsis`、`scripts/verify-harness.sh`）需显式用 Git Bash（`C:\Program Files\Git\bin\bash.exe`）运行，或在 `PATH` 中临时加入 `C:\Program Files\Git\bin`。
+日常启动：直接双击 `启动DNF补丁管理器.bat`；启动器自动对比 `src/`、`package.json`、`electron.vite.config.ts` 与 `out/` 产物的修改时间，源码较新时先执行 `pnpm build` 再启动，因此双击启动总能看到最新源码改动。`--check` 只检查并按需构建不启动，`--repair` 强制重建。仓库 Bash 脚本（如 `pnpm verify:nsis`、`scripts/verify-harness.sh`、`scripts/verify-nsis-preservation.sh`）需显式用 Git Bash（`C:\Program Files\Git\bin\bash.exe`）运行，或在 `PATH` 中临时加入 `C:\Program Files\Git\bin`。
 
 ## 目录结构
 
