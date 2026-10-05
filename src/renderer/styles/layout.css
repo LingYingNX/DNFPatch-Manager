@@ -13,6 +13,36 @@
 .category-sidebar {
   overflow-y: auto;
   border-right: 1px solid var(--color-border);
+  --sidebar-scrollbar-activation: 0;
+  scrollbar-gutter: stable;
+}
+
+.category-sidebar::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+
+.category-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.category-sidebar::-webkit-scrollbar-thumb {
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    180deg,
+    rgb(244 63 94 / calc(15% + 85% * var(--sidebar-scrollbar-activation))),
+    rgb(236 72 153 / calc(17% + 83% * var(--sidebar-scrollbar-activation))),
+    rgb(139 92 246 / calc(20% + 80% * var(--sidebar-scrollbar-activation)))
+  );
+  transition: background 220ms var(--easing-standard);
+}
+
+.category-sidebar:hover {
+  --sidebar-scrollbar-activation: 1;
+}
+
+.category-sidebar[data-scrollbar-active="true"]::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #f43f5e, #ec4899, #8b5cf6);
 }
 
 .sidebar-resize-handle {
@@ -370,6 +400,16 @@
 
 .sidebar-system-nav :where(.category-row > span) {
   color: var(--navigation-font-color);
+}
+
+.sidebar-system-nav .category-row,
+.category-tree .category-row {
+  color: var(--navigation-font-color);
+}
+
+.sidebar-system-nav .category-count,
+.category-tree .category-count {
+  color: color-mix(in srgb, var(--navigation-font-color) 74%, transparent);
 }
 
 .category-tree .category-row {

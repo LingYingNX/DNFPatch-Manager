@@ -1,4 +1,4 @@
-import type { DnfApi } from "../../shared/ipc-contracts";
+import type { DnfApi, RecycleEntryDto } from "../../shared/ipc-contracts";
 import {
   type Notice,
   type WorkspaceItem,
@@ -247,34 +247,15 @@ export function useWorkspaceOperations({
     }
   };
 
-  const restore = async (id: string): Promise<boolean> => {
+  const deleteRecycleItems = async (entries: readonly RecycleEntryDto[]): Promise<boolean> => {
     const api = withClient();
-    if (api === null) {
+    if (api === null || entries.length === 0) {
       return false;
     }
     try {
-      const result = await api.restoreItem({ id });
-      if (!result.ok) {
-        return reportFailure(result.error.message);
-      }
-      await refresh();
-      await refreshRecycle();
-      return true;
-    } catch (error) {
-      if (error instanceof Error) {
-        return reportFailure("恢复失败，回收站内容未被修改。");
-      }
-      throw error;
-    }
-  };
-
-  const emptyRecycle = async (): Promise<boolean> => {
-    const api = withClient();
-    if (api === null) {
-      return false;
-    }
-    try {
-      const result = await api.emptyRecycle({ confirmed: true });
+      const result = await api.deleteRecycleItems({
+        ids: entries.map((entry) => entry.id),
+      });
       if (!result.ok) {
         return reportFailure(result.error.message);
       }
@@ -282,7 +263,7 @@ export function useWorkspaceOperations({
       return true;
     } catch (error) {
       if (error instanceof Error) {
-        return reportFailure("清空回收站失败。");
+        return reportFailure("删除失败，回收站内容未被修改。");
       }
       throw error;
     }
@@ -292,13 +273,12 @@ export function useWorkspaceOperations({
     addGroupMembers,
     createGroup,
     dissolveGroup,
-    emptyRecycle,
+    deleteRecycleItems,
     move,
     moveItems,
     recycle,
     rename,
     renameItem,
-    restore,
     setEnabledFor,
   };
 }

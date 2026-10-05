@@ -8,6 +8,7 @@ export type WorkspaceItemReference =
 export type NavigationSelection =
   | { readonly kind: "all" }
   | { readonly kind: "uncategorized" }
+  | { readonly kind: "recycle" }
   | { readonly kind: "presets" }
   | { readonly kind: "community" }
   | { readonly kind: "category"; readonly relativePath: string }

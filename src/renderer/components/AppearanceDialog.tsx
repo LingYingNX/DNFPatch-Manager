@@ -1,5 +1,5 @@
-import { Image as ImageIcon, Plus, RotateCcw, Sun, Trash2, Type, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Image as ImageIcon, Plus, RotateCcw, Sun, Trash2, Type } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { defaultAppearanceSettings, resetWallpaperControls } from "../../core/state/schemas";
 import type { AppearanceSettingsDto, WallpaperSlot } from "../../shared/appearance-contracts";
 import { Dialog } from "./Dialog";
@@ -93,10 +93,11 @@ const NUMERIC_CONTROLS: readonly NumericControl[] = [
 
 const WALLPAPER_SLOTS: readonly WallpaperSlot[] = [0, 1, 2, 3, 4];
 
-type HsvColor = {
+type HslaColor = {
   readonly hue: number;
   readonly saturation: number;
-  readonly value: number;
+  readonly lightness: number;
+  readonly alpha: number;
 };
 
 type FontColorControl = {
@@ -121,36 +122,13 @@ const FONT_COLOR_CONTROLS: readonly FontColorControl[] = [
   },
 ];
 
-function hexToHsv(hex: string): HsvColor {
-  const numeric = Number.parseInt(hex.slice(1), 16);
-  const red = ((numeric >> 16) & 255) / 255;
-  const green = ((numeric >> 8) & 255) / 255;
-  const blue = (numeric & 255) / 255;
-  const maximum = Math.max(red, green, blue);
-  const minimum = Math.min(red, green, blue);
-  const delta = maximum - minimum;
-  const hue =
-    delta === 0
-      ? 0
-      : Math.round(
-          60 *
-            (maximum === red
-              ? ((green - blue) / delta + 6) % 6
-              : maximum === green
-                ? (blue - red) / delta + 2
-                : (red - green) / delta + 4),
-        );
-  return {
-    hue,
-    saturation: maximum === 0 ? 0 : Math.round((delta / maximum) * 100),
-    value: Math.round(maximum * 100),
-  };
-}
-
-function hsvToHex({ hue, saturation, value }: HsvColor): string {
-  const chroma = (value / 100) * (saturation / 100);
+function hslToRgb(hue: number, saturation: number, lightness: number): [number, number, number] {
+  const normalizedSaturation = saturation / 100;
+  const normalizedLightness = lightness / 100;
+  const chroma = (1 - Math.abs(2 * normalizedLightness - 1)) * normalizedSaturation;
   const section = hue / 60;
   const secondary = chroma * (1 - Math.abs((section % 2) - 1));
+  const base = normalizedLightness - chroma / 2;
   const [red, green, blue] =
     section < 1
       ? [chroma, secondary, 0]
@@ -163,12 +141,49 @@ function hsvToHex({ hue, saturation, value }: HsvColor): string {
             : section < 5
               ? [secondary, 0, chroma]
               : [chroma, 0, secondary];
-  const match = value / 100 - chroma;
-  const toHex = (channel: number) =>
-    Math.round((channel + match) * 255)
-      .toString(16)
-      .padStart(2, "0");
-  return `#${toHex(red)}${toHex(green)}${toHex(blue)}`.toUpperCase();
+  return [
+    Math.round((red + base) * 255),
+    Math.round((green + base) * 255),
+    Math.round((blue + base) * 255),
+  ];
+}
+
+function hexToHsla(hex: string): HslaColor | null {
+  const cleaned = hex.replace(/^#/u, "").toUpperCase();
+  const expanded =
+    cleaned.length === 3 || cleaned.length === 4
+      ? [...cleaned].map((character) => character + character).join("")
+      : cleaned;
+  const opaque = expanded.length === 6 ? `${expanded}FF` : expanded;
+  if (!/^[A-F0-9]{8}$/u.test(opaque)) return null;
+  const red = Number.parseInt(opaque.slice(0, 2), 16) / 255;
+  const green = Number.parseInt(opaque.slice(2, 4), 16) / 255;
+  const blue = Number.parseInt(opaque.slice(4, 6), 16) / 255;
+  const alpha = Number.parseInt(opaque.slice(6, 8), 16) / 255;
+  const maximum = Math.max(red, green, blue);
+  const minimum = Math.min(red, green, blue);
+  const delta = maximum - minimum;
+  const lightness = (maximum + minimum) / 2;
+  const saturation = delta === 0 ? 0 : delta / (1 - Math.abs(2 * lightness - 1));
+  let hue = 0;
+  if (delta !== 0) {
+    if (maximum === red) hue = ((green - blue) / delta) % 6;
+    else if (maximum === green) hue = (blue - red) / delta + 2;
+    else hue = (red - green) / delta + 4;
+  }
+  return {
+    hue: Math.round((((hue * 60) % 360) + 360) % 360),
+    saturation: Math.round(saturation * 100),
+    lightness: Math.round(lightness * 100),
+    alpha: Math.round(alpha * 100),
+  };
+}
+
+function hslaToHex8(color: HslaColor): string {
+  const [red, green, blue] = hslToRgb(color.hue, color.saturation, color.lightness);
+  const alpha = Math.round((color.alpha / 100) * 255);
+  const toHex = (value: number): string => value.toString(16).padStart(2, "0").toUpperCase();
+  return `#${toHex(red)}${toHex(green)}${toHex(blue)}${toHex(alpha)}`;
 }
 
 function FontColorPicker({
@@ -184,120 +199,254 @@ function FontColorPicker({
   readonly testId: string;
   readonly onChange: (color: string) => void;
 }): React.JSX.Element {
-  const hsv = hexToHsv(color);
   const [draftColor, setDraftColor] = useState(color);
-  const [dragging, setDragging] = useState(false);
-  useEffect(() => setDraftColor(color), [color]);
+  const [dragColor, setDragColor] = useState(
+    () =>
+      hexToHsla(color) ?? {
+        hue: 0,
+        saturation: 0,
+        lightness: 100,
+        alpha: 100,
+      },
+  );
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const draggingRef = useRef(false);
+  useEffect(() => {
+    const next = hexToHsla(color) ?? { hue: 0, saturation: 0, lightness: 100, alpha: 100 };
+    setDragColor(next);
+    setDraftColor(hslaToHex8(next));
+  }, [color]);
 
-  const updateHue = (hue: number): void => {
-    // Hue-only edits on near-white text are invisible; the bar always paints at full saturation.
-    onChange(
-      hsvToHex({
-        ...hsv,
-        hue: Math.min(360, Math.max(0, hue)),
-        saturation: 100,
-      }),
-    );
-  };
+  const update = useCallback(
+    (next: HslaColor): void => {
+      setDragColor(next);
+      const hex = hslaToHex8(next);
+      setDraftColor(hex);
+      onChange(hex);
+    },
+    [onChange],
+  );
 
-  const applyBarPoint = (event: React.PointerEvent<HTMLDivElement>): void => {
-    const bounds = event.currentTarget.getBoundingClientRect();
-    if (bounds.width <= 0) return;
-    updateHue(((event.clientX - bounds.left) / bounds.width) * 360);
-  };
+  const applyWheelPoint = useCallback(
+    (clientX: number, clientY: number, element: HTMLElement): void => {
+      const bounds = element.getBoundingClientRect();
+      const center = bounds.width / 2;
+      const x = clientX - bounds.left - center;
+      const y = clientY - bounds.top - center;
+      const distance = Math.min(Math.hypot(x, y), center - 1);
+      const hue = Math.round(((Math.atan2(y, x) * 180) / Math.PI + 360) % 360);
+      update({
+        hue,
+        saturation: Math.round((distance / Math.max(center - 1, 1)) * 100),
+        lightness: 100 - (Math.min(Math.hypot(x, y), center - 1) / Math.max(center - 1, 1)) * 50,
+        alpha: dragColor.alpha,
+      });
+    },
+    [dragColor.alpha, update],
+  );
 
-  const startDragging = (event: React.PointerEvent<HTMLDivElement>): void => {
-    if (event.button !== 0) return;
-    event.preventDefault();
-    event.currentTarget.setPointerCapture?.(event.pointerId);
-    setDragging(true);
-    applyBarPoint(event);
-  };
-
-  const stopDragging = (event: React.PointerEvent<HTMLDivElement>): void => {
-    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
-      event.currentTarget.releasePointerCapture?.(event.pointerId);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (canvas === null) return;
+    const context = canvas.getContext("2d");
+    if (context === null) return;
+    const size = canvas.width;
+    const center = size / 2;
+    const image = context.createImageData(size, size);
+    for (let y = 0; y < size; y += 1) {
+      for (let x = 0; x < size; x += 1) {
+        const dx = x - center;
+        const dy = y - center;
+        const distance = Math.min(Math.hypot(dx, dy) / center, 1);
+        if (distance > 1) continue;
+        const hue = Math.round(((Math.atan2(dy, dx) * 180) / Math.PI + 360) % 360);
+        const [red, green, blue] = hslToRgb(hue, distance * 100, 100 - distance * 50);
+        const offset = (y * size + x) * 4;
+        image.data[offset] = red;
+        image.data[offset + 1] = green;
+        image.data[offset + 2] = blue;
+        image.data[offset + 3] = 255;
+      }
     }
-    setDragging(false);
-  };
+    context.putImageData(image, 0, 0);
+  }, []);
 
   return (
     <div className="appearance-font-color-picker" data-testid={testId}>
-      <div className="appearance-font-color-bar-row">
+      <div className="appearance-font-color-picker-body">
         <div
-          aria-label={`${label}色相`}
-          aria-valuemax={360}
-          aria-valuemin={0}
-          aria-valuenow={hsv.hue}
-          className="appearance-font-color-bar"
-          data-dragging={dragging}
-          onKeyDown={(event) => {
-            if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
-              event.preventDefault();
-              updateHue(hsv.hue - 5);
-            } else if (event.key === "ArrowRight" || event.key === "ArrowUp") {
-              event.preventDefault();
-              updateHue(hsv.hue + 5);
-            }
+          className="appearance-color-wheel"
+          onLostPointerCapture={() => {
+            draggingRef.current = false;
           }}
-          onLostPointerCapture={() => setDragging(false)}
-          onPointerCancel={stopDragging}
-          onPointerDown={startDragging}
+          onPointerCancel={() => {
+            draggingRef.current = false;
+          }}
+          onPointerDown={(event) => {
+            if (event.button !== 0) return;
+            event.preventDefault();
+            event.currentTarget.setPointerCapture?.(event.pointerId);
+            draggingRef.current = true;
+            applyWheelPoint(event.clientX, event.clientY, event.currentTarget);
+          }}
           onPointerMove={(event) => {
-            if (dragging) applyBarPoint(event);
+            if (draggingRef.current)
+              applyWheelPoint(event.clientX, event.clientY, event.currentTarget);
           }}
-          onPointerUp={stopDragging}
-          role="slider"
-          tabIndex={0}
+          onPointerUp={() => {
+            draggingRef.current = false;
+          }}
         >
+          <canvas height={200} ref={canvasRef} width={200} />
           <span
             aria-hidden="true"
-            className="appearance-font-color-bar-marker"
-            style={{ left: `${(hsv.hue / 360) * 100}%` }}
+            className="appearance-color-wheel-pointer"
+            style={{
+              left: `${50 + Math.cos((dragColor.hue * Math.PI) / 180) * (dragColor.saturation / 100) * 50}%`,
+              top: `${50 + Math.sin((dragColor.hue * Math.PI) / 180) * (dragColor.saturation / 100) * 50}%`,
+            }}
           />
         </div>
-        <button
-          aria-label={`重置${label}颜色`}
-          className="appearance-font-color-reset"
-          onClick={() => onChange(defaultValue)}
-          type="button"
-        >
-          <svg aria-hidden="true" viewBox="0 0 1271 1024">
-            <path
-              d="M871.97099 850.891158a425.966862 425.966862 0 0 1-254.114811 79.820585c-11.939526-0.157099-23.736234-1.085411-35.518662-2.013723-4.812943-0.457015-9.454505-1.228229-14.281729-1.999443-9.311688-1.228229-18.466276-2.31364-27.463766-4.284518-5.584156-0.928312-11.168312-2.613556-16.452552-3.856067-8.840391-1.999442-17.680781-4.013166-26.221255-6.626723-4.041729-1.542427-7.912078-2.856346-12.110907-4.612998-10.082901-3.241953-19.994421-6.783821-29.477489-10.782706-2.170823-0.928312-4.284519-1.856625-6.35537-2.613557-11.168312-5.241395-22.350907-10.625607-33.047922-16.338298-0.457015-0.314198-0.928312-0.457015-1.428173-0.771213a435.592748 435.592748 0 0 1-98.815286-75.493222c-0.457015-0.471297-0.928312-1.085411-1.428173-1.542427-8.99749-9.240279-17.680781-18.794756-25.907057-29.120446-1.713808-2.156541-3.256234-4.155983-5.127141-6.626723a445.761339 445.761339 0 0 1-94.944937-275.480279h105.356318l-127.378745-252.086806L0 491.748508h104.356597a536.064714 536.064714 0 0 0 92.57417 301.444463 22.565132 22.565132 0 0 0 1.98516 3.656122c5.969763 8.868954 12.853556 16.895286 19.166081 25.050154 2.55643 2.956318 4.684407 6.041172 7.240837 9.425941 9.368815 11.539637 19.73735 22.650823 29.991632 33.490656 1.142538 1.128257 1.98516 1.970879 2.856346 2.956318A522.611325 522.611325 0 0 0 375.609484 957.561395c1.128257 0.714086 2.127978 1.128257 3.399052 1.970878 12.353696 6.755258 25.135844 13.096346 37.903709 18.723348 3.270516 1.428173 6.398215 2.956318 9.511632 4.284518 11.082622 4.784379 22.436597 8.726137 33.804854 12.853557 5.398494 1.970879 10.65417 3.656123 16.181199 5.484184 9.997211 2.956318 20.165802 5.484184 30.534338 7.883515 6.812385 1.685244 13.481953 3.370488 20.437155 4.784379a60.397434 60.397434 0 0 0 8.369093 1.970879c9.797266 1.828061 19.451715 2.670683 29.106165 3.941757 3.556151 0.714086 7.140865 1.271074 10.511352 1.685244 17.466555 1.685244 34.790293 2.856346 52.256848 2.856346 106.056123 0 234.36318-33.933389 313.726751-108.84106 23.721953-22.522287 19.108954-53.370823 8.826109-64.710516-14.03894-15.709902-47.129707-21.751074-78.163906 0.599833z m294.303599-318.768201A533.951018 533.951018 0 0 0 1074.414505 231.535397c-0.856904-1.428173-1.428173-2.956318-2.127978-4.284518-7.526471-10.554198-15.19576-20.265774-23.007866-30.248703a33.590628 33.590628 0 0 1-2.556429-3.656123 524.739303 524.739303 0 0 0-195.088424-149.172664c-2.270795-0.842622-4.113138-1.970879-6.398215-2.856346-12.068061-5.070014-24.421757-9.440223-36.918271-13.79615-4.284519-1.428173-8.811827-3.099135-13.2106-4.513027-10.939805-3.370488-21.72251-6.041172-32.847977-8.726137-6.11258-1.428173-12.353696-2.956318-18.451995-4.284518-2.984881-0.571269-5.826946-1.428173-8.954644-2.113696-8.226276-1.428173-16.324017-2.113696-24.707392-3.241953-5.826946-0.714086-11.425384-1.542427-17.038103-2.113696-13.910404-1.428173-27.677992-1.970879-41.417015-2.113696-2.55643 0-4.970042-0.41417-7.526472-0.41417-0.428452 0-0.856904 0.142817-1.285356 0.142817a511.800056 511.800056 0 0 0-298.173947 96.116039c-29.47749 20.979861-25.52145 50.585886-12.339414 65.524575 9.368815 10.611325 37.960837 25.592859 61.140084 7.912078 73.279554-55.498801 162.26901-80.577517 251.78689-79.806304 12.853556 0.157099 25.707113 0.771213 38.160781 1.999442 3.88463 0.314198 7.59788 0.928312 11.425383 1.542427a303.715258 303.715258 0 0 1 30.72 4.927197c4.284519 0.771213 8.854672 1.999442 13.039219 2.856345 10.082901 2.31364 19.708787 4.62728 29.320391 7.697853a68.937908 68.937908 0 0 1 8.997489 3.22767c11.168312 3.698968 22.036709 7.555035 32.576625 12.168034 1.24251 0.314198 2.170823 1.228229 3.256234 1.542427a435.749847 435.749847 0 0 1 163.66862 125.10795 9.568759 9.568759 0 0 0 0.628396 0.928312 446.43258 446.43258 0 0 1 98.543933 280.407476H970.15788l133.648424 255.000278 166.967699-255.157378z m0 0"
-              fill="currentColor"
-            />
-          </svg>
-        </button>
+      </div>
+      <div className="appearance-color-row">
+        <div className="appearance-color-alpha-label">
+          <span>色相</span>
+          <output>{dragColor.hue}°</output>
+        </div>
+        <input
+          aria-label={`${label}色相`}
+          max={360}
+          min={0}
+          style={{
+            background:
+              "linear-gradient(to right, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%)",
+          }}
+          onChange={(event) => update({ ...dragColor, hue: Number(event.currentTarget.value) })}
+          type="range"
+          value={dragColor.hue}
+        />
+      </div>
+      <div className="appearance-color-row">
+        <div className="appearance-color-alpha-label">
+          <span>透明度</span>
+          <output>{dragColor.alpha}%</output>
+        </div>
+        <input
+          aria-label={`${label}透明度`}
+          max={100}
+          min={0}
+          onChange={(event) => update({ ...dragColor, alpha: Number(event.currentTarget.value) })}
+          style={{
+            background: `linear-gradient(to right, transparent, ${hslaToHex8({ ...dragColor, alpha: 100 }).slice(0, 7)})`,
+          }}
+          type="range"
+          value={dragColor.alpha}
+        />
       </div>
       <div className="appearance-font-color-value">
         <span
           aria-hidden="true"
-          className="appearance-font-color-swatch"
+          className="appearance-font-color-swatch checkered-pattern"
           style={{ background: color }}
         />
         <input
           aria-label={`${label}颜色`}
-          maxLength={7}
+          maxLength={9}
           onChange={(event) => {
             const next = event.currentTarget.value.toUpperCase();
             setDraftColor(next);
-            if (/^#[A-F0-9]{6}$/u.test(next)) onChange(next);
+            const parsed = hexToHsla(next);
+            if (parsed !== null) update(parsed);
           }}
           onBlur={() => {
-            if (!/^#[A-F0-9]{6}$/u.test(draftColor)) setDraftColor(color);
+            if (hexToHsla(draftColor) === null) setDraftColor(color);
           }}
           spellCheck={false}
           type="text"
           value={draftColor}
         />
+        <button
+          aria-label="重置颜色和透明度"
+          className="appearance-color-reset"
+          onClick={() =>
+            update(
+              hexToHsla(defaultValue) ?? {
+                hue: 0,
+                saturation: 0,
+                lightness: 100,
+                alpha: 100,
+              },
+            )
+          }
+          title="重置颜色和透明度"
+          type="button"
+        >
+          <RotateCcw size={13} />
+        </button>
       </div>
     </div>
   );
 }
 
+function FontColorWorkspace({
+  activeKey,
+  appearance,
+  onActiveKeyChange,
+  onUpdate,
+}: {
+  readonly activeKey: FontColorControl["key"];
+  readonly appearance: AppearanceSettingsDto;
+  readonly onActiveKeyChange: (key: FontColorControl["key"]) => void;
+  readonly onUpdate: (appearance: AppearanceSettingsDto) => void;
+}): React.JSX.Element {
+  const activeControl = FONT_COLOR_CONTROLS.find((control) => control.key === activeKey);
+  if (activeControl === undefined) throw new Error("Unknown font color target");
+  return (
+    <div className="appearance-font-colors">
+      <div className="appearance-font-targets">
+        <span className="appearance-font-target-label">选择配置目标</span>
+        <div aria-label="颜色目标" className="appearance-font-tabs" role="tablist">
+          {FONT_COLOR_CONTROLS.map((control) => {
+            const active = control.key === activeKey;
+            const parsed = hexToHsla(appearance[control.key]);
+            return (
+              <button
+                aria-selected={active}
+                className="appearance-font-tab"
+                data-active={active}
+                key={control.key}
+                onClick={() => onActiveKeyChange(control.key)}
+                role="tab"
+                type="button"
+              >
+                <span aria-hidden="true" className="checkered-pattern appearance-tab-dot">
+                  <span
+                    className="appearance-tab-dot-color"
+                    style={{ background: appearance[control.key] }}
+                  />
+                </span>
+                <span className="appearance-font-tab-name">{control.label}</span>
+                <output className="appearance-font-tab-meta">
+                  {appearance[control.key].slice(1, 7).toUpperCase()} · {parsed?.alpha ?? 100}%
+                </output>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <FontColorPicker
+        color={appearance[activeControl.key]}
+        defaultValue={defaultFontColor(activeControl.key, appearance)}
+        label={activeControl.label}
+        onChange={(color) => onUpdate({ ...appearance, [activeControl.key]: color })}
+        testId={activeControl.testId}
+      />
+    </div>
+  );
+}
+
 function defaultFontColor(key: FontColorControl["key"], appearance: AppearanceSettingsDto): string {
-  return appearance.theme === "high-contrast" ? "#FFFFFF" : defaultAppearanceSettings()[key];
+  return appearance.theme === "high-contrast" ? "#FFFFFFFF" : defaultAppearanceSettings()[key];
 }
 
 const THEME_OPTIONS: readonly {
@@ -369,21 +518,10 @@ function WallpaperItem({
   );
 }
 
-function AppearanceCloseButton({ onClose }: { readonly onClose: () => void }): React.JSX.Element {
-  return (
-    <button
-      aria-label="关闭对话框"
-      className="dialog-close appearance-dialog-close"
-      onClick={onClose}
-      type="button"
-    >
-      <X size={16} />
-    </button>
-  );
-}
-
 export function AppearanceDialog(props: Props): React.JSX.Element {
   const [activeTab, setActiveTab] = useState<AppearanceTab>("wallpaper");
+  const [activeFontColorKey, setActiveFontColorKey] =
+    useState<FontColorControl["key"]>("navigationFontColor");
 
   const restoreDefaultWallpaperControls = (): void => {
     props.onUpdate(resetWallpaperControls(props.appearance));
@@ -450,9 +588,6 @@ export function AppearanceDialog(props: Props): React.JSX.Element {
 
         {activeTab === "theme" ? (
           <section aria-label="外观主题" className="appearance-panel appearance-theme-panel">
-            <div className="appearance-theme-toolbar">
-              <AppearanceCloseButton onClose={props.onClose} />
-            </div>
             <div className="appearance-theme-grid">
               {THEME_OPTIONS.map((theme) => (
                 <button
@@ -480,29 +615,12 @@ export function AppearanceDialog(props: Props): React.JSX.Element {
           </section>
         ) : activeTab === "font" ? (
           <section aria-label="字体外观" className="appearance-panel appearance-font-panel">
-            <div className="appearance-font-toolbar">
-              <AppearanceCloseButton onClose={props.onClose} />
-            </div>
-            <div className="appearance-font-colors">
-              {FONT_COLOR_CONTROLS.map((control) => (
-                <section
-                  aria-label={control.fieldLabel}
-                  className="appearance-font-field"
-                  key={control.key}
-                >
-                  <span>{control.fieldLabel}</span>
-                  <FontColorPicker
-                    color={props.appearance[control.key]}
-                    defaultValue={defaultFontColor(control.key, props.appearance)}
-                    label={control.label}
-                    onChange={(color) =>
-                      props.onUpdate({ ...props.appearance, [control.key]: color })
-                    }
-                    testId={control.testId}
-                  />
-                </section>
-              ))}
-            </div>
+            <FontColorWorkspace
+              activeKey={activeFontColorKey}
+              appearance={props.appearance}
+              onActiveKeyChange={setActiveFontColorKey}
+              onUpdate={props.onUpdate}
+            />
           </section>
         ) : (
           <section aria-labelledby="appearance-wallpaper-title" className="appearance-panel">
@@ -524,18 +642,15 @@ export function AppearanceDialog(props: Props): React.JSX.Element {
               <section className="appearance-adjust-panel">
                 <header className="appearance-panel-header">
                   <h3 id="appearance-wallpaper-title">壁纸微调参数</h3>
-                  <div className="appearance-panel-header-actions">
-                    <button
-                      className="appearance-reset-button"
-                      onClick={restoreDefaultWallpaperControls}
-                      title="恢复默认"
-                      type="button"
-                    >
-                      <RotateCcw size={11} />
-                      恢复默认
-                    </button>
-                    <AppearanceCloseButton onClose={props.onClose} />
-                  </div>
+                  <button
+                    className="appearance-reset-button"
+                    onClick={restoreDefaultWallpaperControls}
+                    title="恢复默认"
+                    type="button"
+                  >
+                    <RotateCcw size={11} />
+                    恢复默认
+                  </button>
                 </header>
                 <div className="appearance-controls-list">
                   {NUMERIC_CONTROLS.map((control) => (

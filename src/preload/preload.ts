@@ -14,6 +14,7 @@ import {
   CreateCategoryRequestSchema,
   CreateGroupRequestSchema,
   DeleteCategoryRequestSchema,
+  DeleteRecycleItemsRequestSchema,
   DissolveGroupRequestSchema,
   type DnfApi,
   EmptyRecycleRequestSchema,
@@ -68,6 +69,9 @@ const IdResultSchema = apiResultSchema(z.object({ id: z.string().uuid() }));
 const IdsResultSchema = apiResultSchema(z.object({ ids: z.array(z.string().uuid()) }));
 const PathResultSchema = apiResultSchema(z.object({ relativePath: z.string() }));
 const PathsResultSchema = apiResultSchema(z.object({ relativePaths: z.array(z.string()) }));
+const DeletedIdsResultSchema = apiResultSchema(
+  z.object({ deletedIds: z.array(z.string().uuid()) }),
+);
 const CategoryStylesResultSchema = apiResultSchema(CategoryStyleStateDtoSchema);
 const GroupResultSchema = apiResultSchema(
   z.object({ id: z.string().uuid(), categoryRelativePath: z.string() }),
@@ -201,6 +205,10 @@ const api = {
   restoreItem: (request) => {
     RestoreRequestSchema.parse(request);
     return invoke(IPC_CHANNELS.restoreItem, PathResultSchema, request);
+  },
+  deleteRecycleItems: (request) => {
+    DeleteRecycleItemsRequestSchema.parse(request);
+    return invoke(IPC_CHANNELS.deleteRecycleItems, DeletedIdsResultSchema, request);
   },
   emptyRecycle: (request) => {
     EmptyRecycleRequestSchema.parse(request);

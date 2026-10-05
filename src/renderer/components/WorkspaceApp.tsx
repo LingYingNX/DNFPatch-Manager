@@ -19,6 +19,7 @@ import { type OperationDialog, OperationDialogs } from "./OperationDialogs";
 import { type PresetDialog, PresetDialogs } from "./PresetDialogs";
 import { PresetWorkspace } from "./PresetWorkspace";
 import { Toast } from "./primitives";
+import { RecycleBinWorkspace } from "./RecycleBinWorkspace";
 import { SettingsDialog } from "./SettingsDialog";
 import { SidebarResizeHandle } from "./SidebarResizeHandle";
 import { WindowTitleBar } from "./WindowTitleBar";
@@ -118,6 +119,10 @@ export function WorkspaceApp({ client }: WorkspaceAppProps): React.JSX.Element {
     }
   }, [navigation, workspace.categoryPath]);
 
+  useEffect(() => {
+    void workspace.refreshRecycle();
+  }, [workspace.refreshRecycle]);
+
   const navigate = (next: NavigationSelection): void => {
     selection.clearSelection();
     setNavigation(next);
@@ -135,6 +140,8 @@ export function WorkspaceApp({ client }: WorkspaceAppProps): React.JSX.Element {
       <main className="placeholder-workspace" aria-label="资源社区">
         <h2>待构建</h2>
       </main>
+    ) : navigation.kind === "recycle" ? (
+      <RecycleBinWorkspace operations={operations} recycleEntries={workspace.recycleEntries} />
     ) : navigation.kind === "presets" ? (
       <PresetWorkspace
         busyKey={presets.busyKey}
@@ -230,7 +237,19 @@ export function WorkspaceApp({ client }: WorkspaceAppProps): React.JSX.Element {
             .moveItems(items, targetDirectoryRelativePath)
             .finally(() => setOperationBusy(false));
         }}
-        onRecycle={() => setActiveDialog("recycle")}
+        onRecycle={() => {
+          if (selection.selectedItems.some((item) => item.enabled)) {
+            setActiveDialog("recycle");
+            return;
+          }
+          setOperationBusy(true);
+          void operations
+            .recycle()
+            .finally(() => {
+              void workspace.refreshRecycle();
+            })
+            .finally(() => setOperationBusy(false));
+        }}
         onRenameItem={(item, newName) => {
           setOperationBusy(true);
           return operations.renameItem(item, newName).finally(() => setOperationBusy(false));
@@ -298,8 +317,7 @@ export function WorkspaceApp({ client }: WorkspaceAppProps): React.JSX.Element {
           }}
           onAppearance={() => setAppearanceOpen(true)}
           onRecycleBin={() => {
-            void workspace.refreshRecycle();
-            setActiveDialog("recycle-bin");
+            navigate({ kind: "recycle" });
           }}
           onSettings={() => setSettingsOpen(true)}
           onMoveCategory={(request) => void workspace.moveCategory(request)}
@@ -313,6 +331,7 @@ export function WorkspaceApp({ client }: WorkspaceAppProps): React.JSX.Element {
           onRenameCategoryAt={workspace.renameCategoryAt}
           presetCount={presets.presets.length}
           readOnly={recovery.readOnly}
+          recycleCount={workspace.recycleEntries.length}
           onSelect={(relativePath) => navigate({ kind: "category", relativePath })}
           onSelectNavigation={navigate}
           snapshot={workspace.navigationSnapshot}
@@ -334,7 +353,6 @@ export function WorkspaceApp({ client }: WorkspaceAppProps): React.JSX.Element {
         navigationSnapshot={workspace.navigationSnapshot}
         onClose={() => setActiveDialog(null)}
         operations={operations}
-        recycleEntries={workspace.recycleEntries}
         selectedItems={selection.selectedItems}
       />
       <CategoryDialogs

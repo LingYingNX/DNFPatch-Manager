@@ -78,12 +78,14 @@
 }
 
 .command-button-danger {
-  border-color: var(--color-error);
-  background: var(--color-error);
+  border-color: color-mix(in srgb, var(--color-error) 45%, transparent);
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--color-canvas) 86%, var(--color-error) 14%);
 }
 
 .command-button-danger:hover:not(:disabled) {
-  filter: brightness(1.08);
+  border-color: color-mix(in srgb, var(--color-error) 68%, transparent);
+  background: color-mix(in srgb, var(--color-canvas) 78%, var(--color-error) 22%);
 }
 
 .icon-button {

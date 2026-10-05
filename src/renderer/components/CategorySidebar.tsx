@@ -39,6 +39,7 @@ type CategorySidebarProps = {
   readonly onSelect: (relativePath: string) => void;
   readonly onSelectNavigation: (selection: NavigationSelection) => void;
   readonly onRecycleBin: () => void;
+  readonly recycleCount: number;
   readonly onAppearance: () => void;
   readonly onSettings: () => void;
   readonly onMoveCategory: (request: MoveCategoryRequest) => void;
@@ -189,6 +190,7 @@ export function CategorySidebar({
   onSelect,
   onSelectNavigation,
   onRecycleBin,
+  recycleCount,
   onAppearance,
   onSettings,
   onMoveCategory,
@@ -203,6 +205,8 @@ export function CategorySidebar({
   readOnly,
 }: CategorySidebarProps): React.JSX.Element {
   const [dragState, setDragState] = useState<CategoryDragState | null>(null);
+  const [scrollbarActive, setScrollbarActive] = useState(false);
+  const scrollbarTimer = useRef<number | null>(null);
   const [dropTarget, setDropTarget] = useState<CategoryDropTarget | null>(null);
   const [rootDropActive, setRootDropActive] = useState(false);
   const [itemDropTargetRelativePath, setItemDropTargetRelativePath] = useState<string | null>(null);
@@ -239,6 +243,13 @@ export function CategorySidebar({
       if (result.ok) setStyleState(result.value);
     });
   }, [client]);
+
+  useEffect(
+    () => () => {
+      if (scrollbarTimer.current !== null) window.clearTimeout(scrollbarTimer.current);
+    },
+    [],
+  );
 
   // 指针在侧栏外松开时不会触发 nav 的 onPointerUp，拖拽状态与落点会残留下来，
   // 之后一次普通点击就会被当成“完成移动”。用 window 兜底取消。
@@ -493,6 +504,17 @@ export function CategorySidebar({
     <nav
       className="category-sidebar"
       aria-label="补丁分类"
+      data-scrollbar-active={scrollbarActive}
+      onScroll={() => {
+        setScrollbarActive(true);
+        if (scrollbarTimer.current !== null) window.clearTimeout(scrollbarTimer.current);
+        scrollbarTimer.current = window.setTimeout(() => setScrollbarActive(false), 900);
+      }}
+      onWheel={() => {
+        setScrollbarActive(true);
+        if (scrollbarTimer.current !== null) window.clearTimeout(scrollbarTimer.current);
+        scrollbarTimer.current = window.setTimeout(() => setScrollbarActive(false), 900);
+      }}
       onKeyDown={(event) => {
         if (event.key !== "Delete" || readOnly || categoryPath === "") return;
         if (
@@ -548,10 +570,11 @@ export function CategorySidebar({
 
       <div className="sidebar-system-nav">
         <SystemRow
+          count={recycleCount}
           icon={<Archive size={16} />}
           label="回收站"
           onClick={onRecycleBin}
-          selected={false}
+          selected={navigation.kind === "recycle"}
         />
         <SystemRow
           count={allCount}

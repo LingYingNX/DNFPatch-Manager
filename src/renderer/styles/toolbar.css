@@ -219,7 +219,9 @@
 .app-shell::before {
   position: absolute;
   z-index: 0;
-  inset: -24%;
+  /* 上下 144% / 左右 48%，与 useAppearance.ts 的
+     WALLPAPER_PAN_MARGIN_X/Y_PERCENT 一一对应（外扩量等于位移上限的分母参数） */
+  inset: -144% -48%;
   background-image: var(--wallpaper-image);
   background-position: center;
   background-repeat: no-repeat;

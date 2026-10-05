@@ -16,8 +16,8 @@ const appearanceState = {
     positionY: 50,
     categoryTextColor: "#9AA0AE",
     selectedTint: "#5B6BFF",
-    navigationFontColor: "#F2F4F8",
-    patchCardFontColor: "#F2F4F8",
+    navigationFontColor: "#F2F4F8FF",
+    patchCardFontColor: "#F2F4F8FF",
   },
   wallpaper: {
     slots: [null, null, null, null, null] as [null, null, null, null, null],
@@ -169,6 +169,10 @@ export function createFakeApi(snapshot: CategorySnapshot): DnfApi {
     recycleItems: async ({ items }) => ({
       ok: true,
       value: { ids: items.map(() => "a2021aa5-e024-4106-a0a3-f0874d4c9ec9") },
+    }),
+    deleteRecycleItems: async ({ ids }) => ({
+      ok: true,
+      value: { deletedIds: [...ids] },
     }),
     restoreItem: async () => ({ ok: true, value: { relativePath: "分类A\\coat.npk" } }),
     emptyRecycle: async () => ({ ok: true, value: { removedCount: 1 } }),

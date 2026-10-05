@@ -568,8 +568,8 @@
 }
 
 .appearance-dialog-panel {
-  width: min(680px, 100%);
-  height: min(318px, calc(100vh - 48px));
+  width: min(720px, 100%);
+  height: min(378px, calc(100vh - 48px));
 }
 
 .appearance-dialog-backdrop {
@@ -592,6 +592,11 @@
   min-width: 0;
   flex-direction: column;
   gap: 6px;
+}
+
+.appearance-dialog-body .appearance-nav {
+  padding-right: 10px;
+  border-right: 1px solid var(--color-border);
 }
 
 .appearance-nav-button {
@@ -630,15 +635,17 @@
 
 .appearance-panel {
   display: flex;
+  position: relative;
   height: 100%;
   min-width: 0;
   min-height: 0;
   flex-direction: column;
   padding: 10px 14px;
   overflow: hidden;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-panel);
-  background: color-mix(in srgb, var(--color-surface) 78%, transparent);
+  /* 三个页签统一去框：只靠导航与内容之间那一根竖线分隔，不再用方框包住面板 */
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .appearance-panel-header {
@@ -653,17 +660,6 @@
   flex-shrink: 0;
 }
 
-.appearance-panel-header-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.appearance-dialog-close {
-  width: 22px;
-  height: 22px;
-}
-
 .appearance-panel-header h3 {
   margin: 0;
   color: var(--color-primary-hover);
@@ -673,24 +669,123 @@
 
 .appearance-font-panel {
   position: relative;
-  padding: 10px 12px;
-}
-
-.appearance-font-toolbar {
-  display: flex;
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  align-items: center;
-  justify-content: flex-end;
-  margin: 0;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .appearance-font-colors {
   display: grid;
+  grid-template-columns: 208px minmax(0, 1fr);
   align-content: start;
-  gap: 14px;
+  align-items: start;
+  gap: 0 24px;
   min-width: 0;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.appearance-font-targets {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.appearance-font-target-label {
+  margin-bottom: 12px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.appearance-font-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.appearance-font-tab {
+  display: flex;
+  min-width: 0;
+  height: 52px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-text-secondary);
+  background: color-mix(in srgb, var(--color-canvas) 82%, transparent);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  transition:
+    background-color var(--motion-standard) var(--easing-standard),
+    border-color var(--motion-standard) var(--easing-standard),
+    color var(--motion-standard) var(--easing-standard),
+    box-shadow var(--motion-standard) var(--easing-standard);
+}
+
+.appearance-font-tab:hover {
+  border-color: var(--color-border-strong);
+  color: var(--color-text-primary);
+  background: var(--color-elevated);
+}
+
+.appearance-font-tab[aria-selected="true"] {
+  border-color: var(--color-primary);
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--color-primary) 12%, var(--color-canvas));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--color-primary) 25%, transparent);
+}
+
+.appearance-font-tab-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.appearance-font-tab output {
+  flex: 0 0 auto;
+  align-self: center;
+  margin-left: auto;
+  color: color-mix(in srgb, var(--color-text-secondary) 86%, transparent);
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 10px;
+}
+
+.checkered-pattern {
+  background-color: color-mix(in srgb, var(--color-canvas) 92%, var(--color-border) 8%);
+  background-image:
+    linear-gradient(45deg, rgb(255 255 255 / 8%) 25%, transparent 25%),
+    linear-gradient(-45deg, rgb(255 255 255 / 8%) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgb(255 255 255 / 8%) 75%),
+    linear-gradient(-45deg, transparent 75%, rgb(255 255 255 / 8%) 75%);
+  background-position:
+    0 0,
+    0 4px,
+    4px -4px,
+    -4px 0;
+  background-size: 8px 8px;
+}
+
+.appearance-tab-dot {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--color-border-strong) 82%, transparent);
+  border-radius: 50%;
+}
+
+.appearance-tab-dot-color {
+  position: absolute;
+  inset: 0;
 }
 
 .appearance-font-field {
@@ -707,26 +802,25 @@
 }
 
 .appearance-font-color-value {
-  display: grid;
+  display: flex;
   align-items: center;
-  grid-template-columns: 28px minmax(0, 1fr);
-  gap: 8px;
+  gap: 10px;
 }
 
 .appearance-font-color-swatch {
-  width: 28px;
-  height: 28px;
+  width: 40px;
+  height: 32px;
   border: 1px solid var(--color-border-strong);
-  border-radius: 5px;
+  border-radius: 6px;
 }
 
 .appearance-font-color-value input {
   width: 100%;
   min-width: 0;
-  height: 30px;
-  padding: 0 6px;
+  height: 32px;
+  padding: 0 12px;
   border: 1px solid var(--color-border-strong);
-  border-radius: 4px;
+  border-radius: 6px;
   color: var(--color-text-primary);
   background: var(--color-elevated);
   font-family: "Cascadia Mono", Consolas, monospace;
@@ -734,14 +828,163 @@
   text-transform: uppercase;
 }
 
+.appearance-color-reset {
+  display: flex;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--color-border-strong) 82%, transparent);
+  border-radius: 6px;
+  color: var(--color-text-secondary);
+  background: var(--color-elevated);
+  cursor: pointer;
+  transition:
+    background-color var(--motion-fast) var(--easing-standard),
+    border-color var(--motion-fast) var(--easing-standard),
+    color var(--motion-fast) var(--easing-standard);
+}
+
+.appearance-color-reset:hover,
+.appearance-color-reset:focus-visible {
+  border-color: var(--color-primary);
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--color-primary) 14%, var(--color-elevated));
+}
+
 .appearance-font-color-picker {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 10px;
+  gap: 12px;
   min-height: 0;
-  padding: 0;
+  align-content: start;
+  padding: 4px 4px 8px;
   border: 0;
   background: transparent;
+}
+
+.appearance-font-color-picker-body {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+}
+
+.appearance-color-wheel {
+  position: relative;
+  width: clamp(144px, 24vh, 176px);
+  height: clamp(144px, 24vh, 176px);
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  border-radius: 50%;
+  cursor: crosshair;
+}
+
+.appearance-color-wheel canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.appearance-color-wheel,
+.appearance-color-wheel canvas {
+  border: 0;
+  outline: 0;
+}
+
+.appearance-color-wheel-pointer {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.75);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.appearance-color-alpha {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.appearance-color-row {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.appearance-color-alpha-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.appearance-color-row output {
+  color: var(--color-text-primary);
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+}
+
+.appearance-color-row input[type="range"] {
+  position: relative;
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  min-width: 0;
+  height: 14px;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  cursor: ew-resize;
+}
+
+/* 轨道与控件等高、且不加内阴影与描边：渐变铺满整条，
+   否则 18px 的轨道叠在 14px 的阴影环上会在条中段露出一圈凸起 */
+.appearance-color-row input[type="range"]::-webkit-slider-runnable-track {
+  height: 14px;
+  border-radius: var(--radius-pill);
+  background: transparent;
+}
+
+.appearance-color-row input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: 0;
+  border: 2px solid var(--color-surface);
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.appearance-color-row input[type="range"]::-moz-range-track {
+  height: 14px;
+  border-radius: var(--radius-pill);
+  background: transparent;
+}
+
+.appearance-color-row input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--color-surface);
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.appearance-color-alpha output {
+  min-width: 32px;
+  color: var(--color-text-primary);
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 11px;
+  text-align: right;
 }
 
 .appearance-font-color-bar-row {
@@ -810,15 +1053,6 @@
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
   pointer-events: none;
   transform: translate(-50%, -50%);
-}
-
-.appearance-theme-toolbar {
-  display: flex;
-  min-height: 22px;
-  align-items: center;
-  justify-content: flex-end;
-  margin: -2px -6px 4px 0;
-  flex-shrink: 0;
 }
 
 .appearance-theme-grid {
@@ -975,6 +1209,41 @@
   padding-right: 2px;
   overflow-x: hidden;
   overflow-y: auto;
+}
+
+/* 外观对话框内的滚动区域统一用侧栏那套 3px 霓虹渐变滚动条：
+   常态微光不遮挡内容，悬停亮起。注意不要同时写标准 scrollbar-color，
+   否则 Chromium 会改用原生渲染、禁用 ::-webkit-scrollbar。 */
+.appearance-wallpaper-slots::-webkit-scrollbar,
+.appearance-font-colors::-webkit-scrollbar,
+.appearance-theme-grid::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+
+.appearance-wallpaper-slots::-webkit-scrollbar-track,
+.appearance-font-colors::-webkit-scrollbar-track,
+.appearance-theme-grid::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.appearance-wallpaper-slots::-webkit-scrollbar-thumb,
+.appearance-font-colors::-webkit-scrollbar-thumb,
+.appearance-theme-grid::-webkit-scrollbar-thumb {
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    180deg,
+    rgb(244 63 94 / 20%),
+    rgb(236 72 153 / 22%),
+    rgb(139 92 246 / 24%)
+  );
+  transition: background 220ms var(--easing-standard);
+}
+
+.appearance-wallpaper-slots:hover::-webkit-scrollbar-thumb,
+.appearance-font-colors:hover::-webkit-scrollbar-thumb,
+.appearance-theme-grid:hover::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #f43f5e, #ec4899, #8b5cf6);
 }
 
 .appearance-wallpaper-item {
@@ -1244,8 +1513,17 @@
     height: auto;
   }
 
-  .appearance-nav {
+  /* 窄屏上面板改为纵向堆叠，高度必须回到自适应，
+     否则固定高度会截断堆叠后的内容 */
+  .appearance-dialog-panel {
+    height: calc(100vh - 24px);
+  }
+
+  .appearance-nav,
+  .appearance-dialog-body .appearance-nav {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding-right: 0;
+    border-right: 0;
   }
 }

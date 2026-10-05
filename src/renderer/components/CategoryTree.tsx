@@ -309,9 +309,11 @@ export function CategoryTree({
                     style={folderStyles[category.relativePath]}
                   />
                   <span>{category.name}</span>
-                  <span aria-hidden="true" className="category-count">
-                    {category.patchCount}
-                  </span>
+                  {category.patchCount === 0 ? null : (
+                    <span aria-hidden="true" className="category-count">
+                      {category.patchCount}
+                    </span>
+                  )}
                 </button>
               )}
             </div>

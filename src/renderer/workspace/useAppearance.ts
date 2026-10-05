@@ -13,11 +13,15 @@ const EMPTY_WALLPAPER: AppearanceBundleDto["wallpaper"] = {
   activeSlot: null,
 };
 const MINIMUM_WALLPAPER_CONTRAST_PERCENT = 50;
-const WALLPAPER_PAN_MARGIN_PERCENT = 24;
+// 壁纸可平移的外扩量（容器百分比）。左右 2 倍、上下 6 倍于原 24% 参数。
+// 必须与 toolbar.css 中 .app-shell::before 的 inset 保持一致：
+// position 走到 0/100 时位移正好顶到外扩边界，外扩量小于该值就会露出底色。
+// 注意这同时决定壁纸缩放：外扩越大，cover 放得越大，可见画面越放大。
+const WALLPAPER_PAN_MARGIN_X_PERCENT = 48;
+const WALLPAPER_PAN_MARGIN_Y_PERCENT = 144;
 
-function wallpaperPanOffset(position: number): string {
-  const offset =
-    ((50 - position) * WALLPAPER_PAN_MARGIN_PERCENT) / (50 + WALLPAPER_PAN_MARGIN_PERCENT);
+function wallpaperPanOffset(position: number, marginPercent: number): string {
+  const offset = ((50 - position) * marginPercent) / (50 + marginPercent);
   return `${offset}%`;
 }
 
@@ -36,9 +40,9 @@ export function useAppearance(
     const temperatureHue =
       appearance.temperature > 0 ? -temperatureMagnitude * 18 : temperatureMagnitude * 18;
     const navigationFontColor =
-      appearance.theme === "high-contrast" ? "#FFFFFF" : appearance.navigationFontColor;
+      appearance.theme === "high-contrast" ? "#FFFFFFFF" : appearance.navigationFontColor;
     const patchCardFontColor =
-      appearance.theme === "high-contrast" ? "#FFFFFF" : appearance.patchCardFontColor;
+      appearance.theme === "high-contrast" ? "#FFFFFFFF" : appearance.patchCardFontColor;
     root.dataset["theme"] = appearance.theme;
     root.style.setProperty("--appearance-temperature", `${appearance.temperature}`);
     root.style.setProperty("--appearance-saturation", `${appearance.saturation}%`);
@@ -51,8 +55,14 @@ export function useAppearance(
     root.style.setProperty("--wallpaper-blur", `${appearance.blur}px`);
     root.style.setProperty("--wallpaper-position-x", `${appearance.positionX}%`);
     root.style.setProperty("--wallpaper-position-y", `${appearance.positionY}%`);
-    root.style.setProperty("--wallpaper-offset-x", wallpaperPanOffset(appearance.positionX));
-    root.style.setProperty("--wallpaper-offset-y", wallpaperPanOffset(appearance.positionY));
+    root.style.setProperty(
+      "--wallpaper-offset-x",
+      wallpaperPanOffset(appearance.positionX, WALLPAPER_PAN_MARGIN_X_PERCENT),
+    );
+    root.style.setProperty(
+      "--wallpaper-offset-y",
+      wallpaperPanOffset(appearance.positionY, WALLPAPER_PAN_MARGIN_Y_PERCENT),
+    );
     root.style.setProperty(
       "--wallpaper-temperature-filter",
       `sepia(${temperatureMagnitude * 0.35}) hue-rotate(${temperatureHue}deg)`,

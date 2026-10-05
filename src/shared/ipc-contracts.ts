@@ -173,6 +173,10 @@ export const RestoreRequestSchema = z.object({
   id: z.string().uuid(),
 });
 
+export const DeleteRecycleItemsRequestSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1),
+});
+
 export const InstallRequestSchema = RecycleRequestSchema;
 export const InstallBatchRequestSchema = z.object({
   items: z
@@ -239,6 +243,7 @@ export const RecycleEntryDtoSchema = z.object({
   originalRelativePath: ItemRelativePathSchema,
   recycledRelativePath: ItemRelativePathSchema,
   recycledAt: z.string().datetime(),
+  size: z.number().int().nonnegative().nullable(),
 });
 export type RecycleEntryDto = z.infer<typeof RecycleEntryDtoSchema>;
 
@@ -289,6 +294,7 @@ export const IPC_CHANNELS = {
   recycleItem: "library:recycle-item",
   recycleItems: "library:recycle-items",
   restoreItem: "library:restore-item",
+  deleteRecycleItems: "library:delete-recycle-items",
   emptyRecycle: "library:empty-recycle",
   listRecycle: "library:list-recycle",
   enableItem: "installation:enable-item",
@@ -386,6 +392,9 @@ export type DnfApi = {
   readonly restoreItem: (
     request: z.input<typeof RestoreRequestSchema>,
   ) => Promise<ApiResult<{ readonly relativePath: string }>>;
+  readonly deleteRecycleItems: (
+    request: z.input<typeof DeleteRecycleItemsRequestSchema>,
+  ) => Promise<ApiResult<{ readonly deletedIds: readonly string[] }>>;
   readonly emptyRecycle: (
     request: z.input<typeof EmptyRecycleRequestSchema>,
   ) => Promise<ApiResult<{ readonly removedCount: number }>>;
