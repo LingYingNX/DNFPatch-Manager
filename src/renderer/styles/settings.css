@@ -569,7 +569,7 @@
 
 .appearance-dialog-panel {
   width: min(720px, 100%);
-  height: min(430px, calc(100vh - 48px));
+  height: min(378px, calc(100vh - 48px));
 }
 
 .appearance-dialog-backdrop {
@@ -592,6 +592,11 @@
   min-width: 0;
   flex-direction: column;
   gap: 6px;
+}
+
+.appearance-dialog-body .appearance-nav {
+  padding-right: 10px;
+  border-right: 1px solid var(--color-border);
 }
 
 .appearance-nav-button {
@@ -630,15 +635,17 @@
 
 .appearance-panel {
   display: flex;
+  position: relative;
   height: 100%;
   min-width: 0;
   min-height: 0;
   flex-direction: column;
   padding: 10px 14px;
   overflow: hidden;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-panel);
-  background: color-mix(in srgb, var(--color-surface) 78%, transparent);
+  /* 三个页签统一去框：只靠导航与内容之间那一根竖线分隔，不再用方框包住面板 */
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .appearance-panel-header {
@@ -653,17 +660,6 @@
   flex-shrink: 0;
 }
 
-.appearance-panel-header-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.appearance-dialog-close {
-  width: 22px;
-  height: 22px;
-}
-
 .appearance-panel-header h3 {
   margin: 0;
   color: var(--color-primary-hover);
@@ -673,34 +669,21 @@
 
 .appearance-font-panel {
   position: relative;
-  padding: 10px 12px;
-}
-
-.appearance-font-toolbar {
-  display: flex;
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  align-items: center;
-  justify-content: flex-end;
-  margin: 0;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .appearance-font-colors {
   display: grid;
-  grid-template-columns: 210px 1px minmax(0, 1fr);
+  grid-template-columns: 208px minmax(0, 1fr);
   align-content: start;
   align-items: start;
-  gap: 20px;
+  gap: 0 24px;
   min-width: 0;
   height: 100%;
   overflow-y: auto;
-}
-
-.appearance-font-divider {
-  align-self: stretch;
-  border: 0;
-  background: var(--color-border);
 }
 
 .appearance-font-targets {
@@ -826,7 +809,7 @@
 
 .appearance-font-color-swatch {
   width: 40px;
-  height: 36px;
+  height: 32px;
   border: 1px solid var(--color-border-strong);
   border-radius: 6px;
 }
@@ -834,7 +817,7 @@
 .appearance-font-color-value input {
   width: 100%;
   min-width: 0;
-  height: 36px;
+  height: 32px;
   padding: 0 12px;
   border: 1px solid var(--color-border-strong);
   border-radius: 6px;
@@ -847,9 +830,9 @@
 
 .appearance-color-reset {
   display: flex;
-  width: 36px;
-  height: 36px;
-  flex: 0 0 36px;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
   align-items: center;
   justify-content: center;
   padding: 0;
@@ -874,10 +857,10 @@
 .appearance-font-color-picker {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 16px;
+  gap: 12px;
   min-height: 0;
   align-content: start;
-  padding: 8px 4px 16px;
+  padding: 4px 4px 8px;
   border: 0;
   background: transparent;
 }
@@ -886,13 +869,12 @@
   display: grid;
   place-items: center;
   min-height: 0;
-  flex: 1 1 auto;
 }
 
 .appearance-color-wheel {
   position: relative;
-  width: 200px;
-  height: 200px;
+  width: clamp(144px, 24vh, 176px);
+  height: clamp(144px, 24vh, 176px);
   overflow: hidden;
   touch-action: none;
   user-select: none;
@@ -932,7 +914,9 @@
 
 .appearance-color-row {
   display: grid;
-  gap: 6px;
+  gap: 4px;
+  font-size: 12px;
+  line-height: 16px;
 }
 
 .appearance-color-alpha-label {
@@ -954,43 +938,45 @@
   -webkit-appearance: none;
   width: 100%;
   min-width: 0;
-  height: 18px;
+  height: 14px;
+  border-radius: var(--radius-pill);
   background: transparent;
   cursor: ew-resize;
 }
 
+/* 轨道与控件等高、且不加内阴影与描边：渐变铺满整条，
+   否则 18px 的轨道叠在 14px 的阴影环上会在条中段露出一圈凸起 */
 .appearance-color-row input[type="range"]::-webkit-slider-runnable-track {
   height: 14px;
   border-radius: var(--radius-pill);
-  box-shadow:
-    inset 0 1px 3px rgba(0, 0, 0, 0.6),
-    0 0 0 1px color-mix(in srgb, var(--color-border-strong) 34%, transparent);
+  background: transparent;
 }
 
 .appearance-color-row input[type="range"]::-webkit-slider-thumb {
   appearance: none;
   -webkit-appearance: none;
-  width: 18px;
-  height: 18px;
-  margin-top: -2px;
-  border: 3px solid var(--color-surface);
+  width: 14px;
+  height: 14px;
+  margin-top: 0;
+  border: 2px solid var(--color-surface);
   border-radius: 50%;
   background: #ffffff;
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.7);
+  box-shadow: none;
 }
 
 .appearance-color-row input[type="range"]::-moz-range-track {
   height: 14px;
   border-radius: var(--radius-pill);
+  background: transparent;
 }
 
 .appearance-color-row input[type="range"]::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  border: 3px solid var(--color-surface);
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--color-surface);
   border-radius: 50%;
   background: #ffffff;
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.7);
+  box-shadow: none;
 }
 
 .appearance-color-alpha output {
@@ -1067,15 +1053,6 @@
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
   pointer-events: none;
   transform: translate(-50%, -50%);
-}
-
-.appearance-theme-toolbar {
-  display: flex;
-  min-height: 22px;
-  align-items: center;
-  justify-content: flex-end;
-  margin: -2px -6px 4px 0;
-  flex-shrink: 0;
 }
 
 .appearance-theme-grid {
@@ -1232,6 +1209,41 @@
   padding-right: 2px;
   overflow-x: hidden;
   overflow-y: auto;
+}
+
+/* 外观对话框内的滚动区域统一用侧栏那套 3px 霓虹渐变滚动条：
+   常态微光不遮挡内容，悬停亮起。注意不要同时写标准 scrollbar-color，
+   否则 Chromium 会改用原生渲染、禁用 ::-webkit-scrollbar。 */
+.appearance-wallpaper-slots::-webkit-scrollbar,
+.appearance-font-colors::-webkit-scrollbar,
+.appearance-theme-grid::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+
+.appearance-wallpaper-slots::-webkit-scrollbar-track,
+.appearance-font-colors::-webkit-scrollbar-track,
+.appearance-theme-grid::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.appearance-wallpaper-slots::-webkit-scrollbar-thumb,
+.appearance-font-colors::-webkit-scrollbar-thumb,
+.appearance-theme-grid::-webkit-scrollbar-thumb {
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    180deg,
+    rgb(244 63 94 / 20%),
+    rgb(236 72 153 / 22%),
+    rgb(139 92 246 / 24%)
+  );
+  transition: background 220ms var(--easing-standard);
+}
+
+.appearance-wallpaper-slots:hover::-webkit-scrollbar-thumb,
+.appearance-font-colors:hover::-webkit-scrollbar-thumb,
+.appearance-theme-grid:hover::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #f43f5e, #ec4899, #8b5cf6);
 }
 
 .appearance-wallpaper-item {
@@ -1501,8 +1513,17 @@
     height: auto;
   }
 
-  .appearance-nav {
+  /* 窄屏上面板改为纵向堆叠，高度必须回到自适应，
+     否则固定高度会截断堆叠后的内容 */
+  .appearance-dialog-panel {
+    height: calc(100vh - 24px);
+  }
+
+  .appearance-nav,
+  .appearance-dialog-body .appearance-nav {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding-right: 0;
+    border-right: 0;
   }
 }

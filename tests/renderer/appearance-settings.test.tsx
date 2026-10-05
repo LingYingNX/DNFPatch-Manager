@@ -261,15 +261,16 @@ describe("appearance settings", () => {
     }
   });
 
-  it("keeps the close control in the content toolbar and closes on backdrop click", async () => {
+  it("has no close control and closes on backdrop click", async () => {
     render(<App api={createFakeApi(WORKSPACE_SNAPSHOT)} />);
 
     fireEvent.click(await screen.findByRole("button", { name: "调整外观" }));
 
     const appearanceDialog = screen.getByRole("dialog", { name: "调整外观" });
-    const resetButton = within(appearanceDialog).getByRole("button", { name: "恢复默认" });
-    const closeButton = within(appearanceDialog).getByRole("button", { name: "关闭对话框" });
-    expect(closeButton.parentElement).toBe(resetButton.parentElement);
+    // 外观对话框不提供关闭按钮，只靠背景点击与 Esc 关闭。
+    expect(
+      within(appearanceDialog).queryByRole("button", { name: "关闭对话框" }),
+    ).not.toBeInTheDocument();
 
     fireEvent.click(appearanceDialog);
     expect(screen.getByRole("dialog", { name: "调整外观" })).toBeInTheDocument();

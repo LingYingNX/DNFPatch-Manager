@@ -171,6 +171,30 @@ test("imports and renders the supplied wallpaper across supported viewports", as
     await page.getByRole("button", { name: "字体外观" }).click();
     await expect(page.getByRole("combobox")).toHaveCount(0);
     await expect(page.locator(".appearance-font-color-bar")).toHaveCount(2);
+    // 字体外观��版回归：颜色设置不得被挤出可视区，右栏无边框，全框只剩一根竖线
+    await page.setViewportSize({ width: 1280, height: 720 });
+    const fontColors = page.locator(".appearance-font-colors");
+    await expect
+      .poll(() => fontColors.evaluate((element) => element.scrollHeight - element.clientHeight))
+      .toBeLessThanOrEqual(1);
+    const hexRowBox = await page.locator(".appearance-font-color-value").boundingBox();
+    const fontPanelBox = await page.locator(".appearance-font-panel").boundingBox();
+    expect(hexRowBox).not.toBeNull();
+    expect(fontPanelBox).not.toBeNull();
+    expect((hexRowBox?.y ?? 0) + (hexRowBox?.height ?? 0)).toBeLessThanOrEqual(
+      (fontPanelBox?.y ?? 0) + (fontPanelBox?.height ?? 0),
+    );
+    expect(
+      await page
+        .locator(".appearance-font-panel")
+        .evaluate((element) => getComputedStyle(element).borderTopWidth),
+    ).toBe("0px");
+    await expect(page.locator(".appearance-font-divider")).toHaveCount(0);
+    expect(
+      await page
+        .locator(".appearance-nav")
+        .evaluate((element) => getComputedStyle(element).borderRightWidth),
+    ).toBe("1px");
     await page.getByRole("button", { name: "静态壁纸" }).click();
     await page.setViewportSize({ width: 1280, height: 720 });
     await page.screenshot({ path: join(screenshotRoot, "settings-1280x720.png") });

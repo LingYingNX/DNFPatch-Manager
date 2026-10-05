@@ -1,4 +1,4 @@
-import { Image as ImageIcon, Plus, RotateCcw, Sun, Trash2, Type, X } from "lucide-react";
+import { Image as ImageIcon, Plus, RotateCcw, Sun, Trash2, Type } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { defaultAppearanceSettings, resetWallpaperControls } from "../../core/state/schemas";
 import type { AppearanceSettingsDto, WallpaperSlot } from "../../shared/appearance-contracts";
@@ -434,7 +434,6 @@ function FontColorWorkspace({
           })}
         </div>
       </div>
-      <span aria-hidden="true" className="appearance-font-divider" />
       <FontColorPicker
         color={appearance[activeControl.key]}
         defaultValue={defaultFontColor(activeControl.key, appearance)}
@@ -519,19 +518,6 @@ function WallpaperItem({
   );
 }
 
-function AppearanceCloseButton({ onClose }: { readonly onClose: () => void }): React.JSX.Element {
-  return (
-    <button
-      aria-label="关闭对话框"
-      className="dialog-close appearance-dialog-close"
-      onClick={onClose}
-      type="button"
-    >
-      <X size={16} />
-    </button>
-  );
-}
-
 export function AppearanceDialog(props: Props): React.JSX.Element {
   const [activeTab, setActiveTab] = useState<AppearanceTab>("wallpaper");
   const [activeFontColorKey, setActiveFontColorKey] =
@@ -602,9 +588,6 @@ export function AppearanceDialog(props: Props): React.JSX.Element {
 
         {activeTab === "theme" ? (
           <section aria-label="外观主题" className="appearance-panel appearance-theme-panel">
-            <div className="appearance-theme-toolbar">
-              <AppearanceCloseButton onClose={props.onClose} />
-            </div>
             <div className="appearance-theme-grid">
               {THEME_OPTIONS.map((theme) => (
                 <button
@@ -632,9 +615,6 @@ export function AppearanceDialog(props: Props): React.JSX.Element {
           </section>
         ) : activeTab === "font" ? (
           <section aria-label="字体外观" className="appearance-panel appearance-font-panel">
-            <div className="appearance-font-toolbar">
-              <AppearanceCloseButton onClose={props.onClose} />
-            </div>
             <FontColorWorkspace
               activeKey={activeFontColorKey}
               appearance={props.appearance}
@@ -662,18 +642,15 @@ export function AppearanceDialog(props: Props): React.JSX.Element {
               <section className="appearance-adjust-panel">
                 <header className="appearance-panel-header">
                   <h3 id="appearance-wallpaper-title">壁纸微调参数</h3>
-                  <div className="appearance-panel-header-actions">
-                    <button
-                      className="appearance-reset-button"
-                      onClick={restoreDefaultWallpaperControls}
-                      title="恢复默认"
-                      type="button"
-                    >
-                      <RotateCcw size={11} />
-                      恢复默认
-                    </button>
-                    <AppearanceCloseButton onClose={props.onClose} />
-                  </div>
+                  <button
+                    className="appearance-reset-button"
+                    onClick={restoreDefaultWallpaperControls}
+                    title="恢复默认"
+                    type="button"
+                  >
+                    <RotateCcw size={11} />
+                    恢复默认
+                  </button>
                 </header>
                 <div className="appearance-controls-list">
                   {NUMERIC_CONTROLS.map((control) => (
