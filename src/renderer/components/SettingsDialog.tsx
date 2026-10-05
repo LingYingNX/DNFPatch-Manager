@@ -12,7 +12,6 @@ import {
   Settings as SettingsIcon,
   Sparkles,
   Users,
-  X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { AppUpdate } from "../workspace/useAppUpdate";
@@ -138,6 +137,7 @@ export function SettingsDialog(props: Props): React.JSX.Element {
     <Dialog
       backdropClassName="settings-dialog-backdrop"
       className="settings-dialog-panel"
+      closeOnBackdrop
       hideHeader
       onClose={props.onClose}
       title="设置"
@@ -166,14 +166,6 @@ export function SettingsDialog(props: Props): React.JSX.Element {
         </aside>
 
         <main className="settings-content" role="tabpanel">
-          <button
-            aria-label="关闭对话框"
-            className="settings-content-close"
-            onClick={props.onClose}
-            type="button"
-          >
-            <X aria-hidden="true" size={18} />
-          </button>
           <div className="settings-content-body">
             {section === "general" ? (
               <section className="settings-detail-section">

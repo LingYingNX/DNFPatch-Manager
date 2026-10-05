@@ -36,7 +36,7 @@ test("toggles every selected card from a single card switch", async () => {
     await directoryInput.fill(gameRoot);
     await directoryInput.press("Enter");
     await page.waitForTimeout(1000);
-    await page.getByRole("button", { name: "关闭对话框" }).click();
+    await page.locator(".dialog-backdrop-dismiss").click();
 
     await page.getByRole("button", { name: "分类", exact: true }).click();
     const first = page.getByRole("button", { name: "a.npk", exact: true });

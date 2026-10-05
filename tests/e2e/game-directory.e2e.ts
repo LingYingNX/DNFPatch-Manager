@@ -65,7 +65,7 @@ test("persists the selected game directory across restart and toggles a real pat
     const directoryInput = page.getByRole("textbox", { name: "游戏目录" });
     await page.getByRole("button", { name: "浏览", exact: true }).click();
     await expect(directoryInput).toHaveValue(gameRoot);
-    await page.getByRole("button", { name: "关闭对话框" }).click();
+    await page.locator(".dialog-backdrop-dismiss").click();
     await expect(page.locator(".app-toolbar")).toHaveCount(0);
     await page.screenshot({ path: join(screenshotRoot, "task-8-game-directory-1280.png") });
 
@@ -81,7 +81,7 @@ test("persists the selected game directory across restart and toggles a real pat
     await page.getByRole("button", { name: "设置" }).click();
     await page.getByRole("button", { name: "浏览", exact: true }).click();
     await expect(page.getByRole("alert")).toHaveText("请先停用所有补丁，再更换游戏目录");
-    await page.getByRole("button", { name: "关闭对话框" }).click();
+    await page.locator(".dialog-backdrop-dismiss").click();
 
     await application.close();
     const restarted = await launch();
@@ -89,7 +89,7 @@ test("persists the selected game directory across restart and toggles a real pat
       const restartedPage = await restarted.firstWindow();
       await restartedPage.getByRole("button", { name: "设置" }).click();
       await expect(restartedPage.getByRole("textbox", { name: "游戏目录" })).toHaveValue(gameRoot);
-      await restartedPage.getByRole("button", { name: "关闭对话框" }).click();
+      await restartedPage.locator(".dialog-backdrop-dismiss").click();
       await rm(join(gameRoot, "coat.npk"));
       await restartedPage
         .locator("label.switch")

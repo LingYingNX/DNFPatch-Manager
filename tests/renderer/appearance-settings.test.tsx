@@ -46,7 +46,7 @@ describe("appearance settings", () => {
     expect(within(settingsDialog).queryAllByRole("slider")).toHaveLength(0);
     expect(screen.queryByRole("dialog", { name: "调整外观" })).not.toBeInTheDocument();
 
-    fireEvent.click(within(settingsDialog).getByRole("button", { name: "关闭对话框" }));
+    fireEvent.click(screen.getByRole("button", { name: "关闭对话框" }));
     fireEvent.click(screen.getByRole("button", { name: "调整外观" }));
 
     const appearanceDialog = screen.getByRole("dialog", { name: "调整外观" });

@@ -94,36 +94,36 @@
   background: transparent;
 }
 
-.settings-content-close {
-  display: grid;
-  position: absolute;
-  z-index: 1;
-  top: 14px;
-  right: 18px;
-  width: 30px;
-  height: 30px;
-  flex: 0 0 auto;
-  place-items: center;
-  border: 1px solid transparent;
-  border-radius: 7px;
-  color: var(--color-text-secondary);
-  background: transparent;
-  cursor: pointer;
-}
-
-.settings-content-close:hover,
-.settings-content-close:focus-visible {
-  border-color: var(--color-border-strong);
-  color: var(--color-text-primary);
-  background: color-mix(in srgb, var(--color-elevated) 68%, transparent);
-  outline: none;
-}
-
 .settings-content-body {
   min-height: 0;
   flex: 1;
   padding: 24px;
   overflow-y: auto;
+  --settings-scrollbar-activation: 0;
+  scrollbar-gutter: stable;
+}
+
+.settings-content-body::-webkit-scrollbar {
+  width: 3px;
+}
+
+.settings-content-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.settings-content-body::-webkit-scrollbar-thumb {
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    180deg,
+    rgb(244 63 94 / calc(15% + 85% * var(--settings-scrollbar-activation))),
+    rgb(236 72 153 / calc(17% + 83% * var(--settings-scrollbar-activation))),
+    rgb(139 92 246 / calc(20% + 80% * var(--settings-scrollbar-activation)))
+  );
+  transition: background 220ms var(--easing-standard);
+}
+
+.settings-content-body:hover {
+  --settings-scrollbar-activation: 1;
 }
 
 .settings-detail-section {
