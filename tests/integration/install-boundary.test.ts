@@ -7,6 +7,7 @@ import { createVirtualGroupService } from "../../src/core/groups/group-service";
 import { createInstallService } from "../../src/core/install/install-service";
 import { InstallationStateSchema } from "../../src/core/state/schemas";
 import { parseGameRoot, resolveAppPaths } from "../../src/main/app-paths";
+import { buildNpkBytes } from "./npk-fixture";
 
 const temporaryDirectories: string[] = [];
 
@@ -26,6 +27,49 @@ async function createFixture() {
 }
 
 describe("installation target boundary", () => {
+  it.each([
+    { parentName: "ImagePacks2", patchName: "clip.npk", bytes: buildNpkBytes(["sprite/a.img"]) },
+    { parentName: "SoundPacks", patchName: "clip.npk", bytes: buildNpkBytes(["sounds/a.ogg"]) },
+    { parentName: "video", patchName: "clip.bk2", bytes: Buffer.from("bk2-bytes") },
+  ])(
+    "accepts $parentName as a routed installation parent",
+    async ({ parentName, patchName, bytes }) => {
+      // Given: a game root exposing the routed subdirectory and one matching patch.
+      const { paths, gameRoot } = await createFixture();
+      const targetDir = join(gameRoot, parentName);
+      await mkdir(targetDir);
+      await writeFile(join(paths.libraryRoot, patchName), bytes);
+      const service = createInstallService({ ...paths, gameRoot });
+
+      // When: the patch is enabled so it routes into that subdirectory.
+      const result = await service.enable({ kind: "patch", relativePath: patchName });
+
+      // Then: the boundary check lets the routed parent through.
+      expect(result).toEqual({ ok: true, value: { installedCount: 1 } });
+      await expect(access(join(targetDir, patchName))).resolves.toBeUndefined();
+    },
+  );
+
+  it("refuses a target inside a subdirectory that is not a routing parent", async () => {
+    // Given: a game root whose stray subdirectory is not an allowed routing parent.
+    const { paths, gameRoot } = await createFixture();
+    const stray = join(gameRoot, "stray");
+    await mkdir(stray);
+    await writeFile(join(paths.libraryRoot, "clip.bk2"), "patch");
+    const service = createInstallService({
+      ...paths,
+      gameRoot,
+      videoTargetDir: stray,
+    });
+
+    // When: the patch is enabled with that directory as its routed target.
+    const result = await service.enable({ kind: "patch", relativePath: "clip.bk2" });
+
+    // Then: the boundary rejects the write and nothing is left behind.
+    expect(result).toEqual({ ok: false, error: { code: "TRANSACTION_FAILED" } });
+    await expect(access(join(stray, "clip.bk2"))).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
   it("preserves a target created after preflight instead of overwriting it", async () => {
     const { paths, gameRoot } = await createFixture();
     await writeFile(join(paths.libraryRoot, "race.npk"), "patch");

@@ -53,4 +53,33 @@ describe("item previews", () => {
     expect(missingPreviewCard.parentElement?.querySelector(".item-preview-hover-image")).toBeNull();
     expect(patchCard).toHaveAttribute("aria-pressed", "false");
   });
+
+  it("plays the routed video on hover instead of zooming the still image", async () => {
+    const api = createFakeApi({
+      ...WORKSPACE_SNAPSHOT,
+      patches: WORKSPACE_SNAPSHOT.patches.map((patch) =>
+        patch.name === "coat.npk"
+          ? {
+              ...patch,
+              previewUrl: "dnf-library://library/coat.png",
+              videoPreviewUrl: "dnf-library://library/coat.mp4",
+            }
+          : patch,
+      ),
+    });
+    render(<App api={api} />);
+
+    const patchShell = (await screen.findByRole("button", { name: "coat.npk" })).parentElement;
+    const hoverVideo = patchShell?.querySelector(".item-preview-hover-video");
+    expect(hoverVideo).toBeInTheDocument();
+    expect(hoverVideo).toHaveAttribute("src", "dnf-library://library/coat.mp4");
+    // React assigns `muted` as a live DOM property rather than an attribute.
+    expect((hoverVideo as HTMLVideoElement).muted).toBe(true);
+    expect((hoverVideo as HTMLVideoElement).loop).toBe(true);
+    // The still image is the fallback only: it must not render beside the video.
+    expect(patchShell?.querySelector(".item-preview-hover-image")).toBeNull();
+
+    const missingVideoShell = screen.getByRole("button", { name: "sword.npk" }).parentElement;
+    expect(missingVideoShell?.querySelector(".item-preview-hover-video")).toBeNull();
+  });
 });

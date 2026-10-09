@@ -1,6 +1,7 @@
 import { copyFile, lstat, rm } from "node:fs/promises";
 import { win32 } from "node:path";
 import type { LibraryRoot } from "../../main/app-paths";
+import { isLibraryPatchPath } from "../../shared/library-patch-extensions";
 import { err, ok, type Result } from "../../shared/result";
 import {
   executeFileTransaction,
@@ -10,7 +11,6 @@ import {
 import { hashFile } from "../filesystem/hash-file";
 import { pathExists } from "../filesystem/path-exists";
 import { type LibraryPathError, resolveLibraryPath } from "../paths/library-path";
-import { isNpkPath } from "../paths/relative-path";
 
 export type ImportPatchesRequest = {
   readonly libraryRoot: LibraryRoot;
@@ -48,7 +48,7 @@ export async function importPatches(
       const normalizedName = name.toLocaleLowerCase();
       if (
         !win32.isAbsolute(sourcePath) ||
-        !isNpkPath(sourcePath) ||
+        !isLibraryPatchPath(sourcePath) ||
         seenNames.has(normalizedName)
       ) {
         return err({ code: "INVALID_IMPORT_SOURCE", sourcePath });

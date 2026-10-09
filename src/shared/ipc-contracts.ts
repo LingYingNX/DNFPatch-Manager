@@ -14,6 +14,8 @@ import {
   type GroupSnapshot,
   GroupSnapshotSchema,
 } from "./library-dto";
+import type { LibraryChangedEvent } from "./library-events";
+import { isLibraryPatchPath } from "./library-patch-extensions";
 import { pathKey } from "./path-key";
 import type {
   AddItemsToPresetRequest,
@@ -195,13 +197,13 @@ export const InstallBatchRequestSchema = z.object({
 });
 export const RecycleBatchRequestSchema = InstallBatchRequestSchema;
 
-const AbsoluteNpkPathSchema = z
+const AbsolutePatchPathSchema = z
   .string()
-  .refine((value) => /^[a-z]:[\\/]/iu.test(value) && value.toLocaleLowerCase().endsWith(".npk"));
+  .refine((value) => /^[a-z]:[\\/]/iu.test(value) && isLibraryPatchPath(value));
 
 export const ImportDroppedPatchesRequestSchema = z.object({
   categoryRelativePath: RelativePathSchema,
-  sourcePaths: z.array(AbsoluteNpkPathSchema).min(1),
+  sourcePaths: z.array(AbsolutePatchPathSchema).min(1),
 });
 export const RevealPatchRequestSchema = z.object({
   relativePath: ItemRelativePathSchema,
@@ -310,6 +312,7 @@ export const IPC_CHANNELS = {
   toggleMaximizeWindow: "window:toggle-maximize",
   closeWindow: "window:close",
   windowStateChanged: "window:state-changed",
+  libraryChanged: "library:changed",
   getPreviewState: "appearance:get-preview-state",
   selectItemPreview: "appearance:select-item-preview",
   getAppearance: "appearance:get-settings",
@@ -445,6 +448,8 @@ export type DnfApi = {
     readonly install: () => Promise<ApiResult<null>>;
     readonly subscribe: (listener: (event: UpdateEvent) => void) => () => void;
   };
+  /** 库内容在后台被改动（如补生成 BK2 预览）时的推送，用于触发重新扫描。 */
+  readonly subscribeLibraryChanges: (listener: (event: LibraryChangedEvent) => void) => () => void;
   readonly getPreviewState: () => Promise<
     ApiResult<{ readonly items: readonly ActivePreviewDto[] }>
   >;

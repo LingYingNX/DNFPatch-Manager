@@ -30,6 +30,7 @@ type InstallServiceOptions = {
   readonly gameRoot: GameRoot;
   readonly imageTargetDir?: string | undefined;
   readonly soundTargetDir?: string | undefined;
+  readonly videoTargetDir?: string | undefined;
   readonly groups?: VirtualGroupService | undefined;
   readonly createId?: () => string;
   readonly now?: () => Date;
@@ -89,12 +90,14 @@ export function createInstallService(options: InstallServiceOptions): InstallSer
   const store = createInstallationStateStore(stateFile);
   const imageTargetDir = options.imageTargetDir ?? win32.join(options.gameRoot, "ImagePacks2");
   const soundTargetDir = options.soundTargetDir ?? win32.join(options.gameRoot, "SoundPacks");
+  const videoTargetDir = options.videoTargetDir ?? win32.join(options.gameRoot, "video");
   const context = {
     libraryRoot: options.libraryRoot,
     dataRoot: options.dataRoot,
     gameRoot: options.gameRoot,
     imageTargetDir,
     soundTargetDir,
+    videoTargetDir,
     groups: options.groups,
     stateFile,
     store,
@@ -131,6 +134,8 @@ export type InstallBatchContext = {
   readonly imageTargetDir: string;
   /** 音效补丁落盘目录（游戏根目录下的 SoundPacks）。 */
   readonly soundTargetDir: string;
+  /** 视频补丁落盘目录（游戏根目录下的 video）。 */
+  readonly videoTargetDir: string;
   readonly groups?: VirtualGroupService | undefined;
   readonly stateFile: string;
   readonly store: ReturnType<typeof createInstallationStateStore>;

@@ -1,16 +1,16 @@
-<!-- Managed by agent: keep sections and order, edit content, not structure. Last updated: 2026-09-27 -->
+<!-- Managed by agent: keep sections and order, edit content, not structure. Last updated: 2026-10-09 -->
 
 # AGENTS.md — tests
 
 ## Overview
 
-测试按层拆分：`unit/` 走默认 jsdom 配置、`integration/` 走 node 配置与真实 core 服务、`renderer/` 在 jsdom 下用 Testing Library、`e2e/` 用 Playwright。
+测试按层拆分：`unit/` 与 `renderer/` 走默认 jsdom 配置、`integration/` 走 node 配置与真实 core 服务、`e2e/` 用 Playwright。
 
 ## Key Files
 
 | 路径 | 用途 |
 |------|------|
-| `tests/unit/` | 纯函数与契约（node） |
+| `tests/unit/` | 纯函数与契约（默认 jsdom 环境） |
 | `tests/integration/` | core 服务与 IPC 契约集成（node） |
 | `tests/renderer/` | React 组件与工作区行为（jsdom） |
 | `tests/e2e/` | 打包后应用端到端（Playwright） |
@@ -18,7 +18,7 @@
 
 ## Setup & environment
 
-- `vitest.config.ts`（含 `tests/unit`、`tests/renderer`）为 jsdom；`vitest.integration.config.ts` 为 node。
+- `vitest.config.ts` 默认 jsdom；`vitest.integration.config.ts` 为 node 并只收集 `tests/integration/`。
 - `clearMocks` 与 `restoreMocks` 已开启；测试间不得共享可变状态。
 - 涉及中文路径/文件的用例必须用真实路径写法，不要硬编码盘符假设。
 - Windows PowerShell 的 `PATH` 可能没有 `bash`；`tests/unit/verify-harness-drift.test.ts` 的 `spawnSync("bash", ...)` 会返回 `ENOENT`，表现为 `stdout` 为 `undefined`。先临时加入 `C:\Program Files\Git\bin` 或用 Git Bash 运行，不要改断言掩盖环境问题（ERR-20260924-001）。

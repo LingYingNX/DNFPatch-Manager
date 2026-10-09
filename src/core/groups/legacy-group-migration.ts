@@ -2,6 +2,7 @@ import type { Dirent } from "node:fs";
 import { lstat, mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { win32 } from "node:path";
 import type { LibraryRoot } from "../../main/app-paths";
+import { isLibraryPatchPath } from "../../shared/library-patch-extensions";
 import { pathKey } from "../../shared/path-key";
 import { err, ok, type Result } from "../../shared/result";
 import type { FileTransactionError, FileTransactionStep } from "../filesystem/file-transaction";
@@ -10,7 +11,6 @@ import { pathExists } from "../filesystem/path-exists";
 import { type GroupMarker, readGroupMarker } from "../library/group-marker";
 import { findMatchingPreview, LIBRARY_PREVIEW_EXTENSIONS } from "../library/library-preview";
 import type { LibraryPathError } from "../paths/library-path";
-import { isNpkPath } from "../paths/relative-path";
 import type { PreviewService, PreviewServiceError } from "../previews/preview-service";
 import type { VirtualGroupService, VirtualGroupServiceError } from "./group-service";
 
@@ -105,7 +105,7 @@ async function prepareLegacyGroup(
       readFile(markerPath, "utf8"),
     ]);
     const fileNames = entries.filter((entry) => entry.isFile()).map((entry) => entry.name);
-    const memberNames = fileNames.filter(isNpkPath);
+    const memberNames = fileNames.filter(isLibraryPatchPath);
     if (memberNames.length < 2) {
       return err({ code: "LEGACY_GROUP_INVALID", relativePath: directoryRelativePath });
     }
@@ -122,7 +122,7 @@ async function prepareLegacyGroup(
       const targetRelativePath = win32.join(categoryRelativePath, name);
       const sourcePath = win32.join(directoryPath, name);
       const metadata = await lstat(sourcePath);
-      if (!metadata.isFile() || !isNpkPath(name)) {
+      if (!metadata.isFile() || !isLibraryPatchPath(name)) {
         return err({ code: "LEGACY_GROUP_INVALID", relativePath: sourceRelativePath });
       }
       const targetPath = win32.join(win32.dirname(directoryPath), name);

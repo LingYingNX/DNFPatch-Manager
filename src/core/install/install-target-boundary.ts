@@ -6,9 +6,9 @@ import { normalizedPathKey } from "../paths/relative-path";
 
 /**
  * 安装目标允许的父目录：游戏根目录直属（旧版记录）与
- * ImagePacks2 / SoundPacks 子目录（按补丁类型路由的新记录）。
+ * ImagePacks2 / SoundPacks / video 子目录（按补丁类型路由的新记录）。
  */
-const ALLOWED_PARENT_NAMES = ["ImagePacks2", "SoundPacks"] as const;
+const ALLOWED_PARENT_NAMES = ["ImagePacks2", "SoundPacks", "video"] as const;
 
 export async function assertInstallTargetBoundary(
   gameRoot: GameRoot,

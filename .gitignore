@@ -25,3 +25,7 @@ build/icon.png
 .DS_Store
 Thumbs.db
 .agents/
+# 可选的本机转码后端（bink2nvenc / radvideo64 / ffmpeg）：体积大且受各自许可约束，
+# 不入库；运行时由 video-preview-generator 自动探测应用根目录下的 tools/。
+tools/bink2nvenc/
+.tmp-bink2-verify/

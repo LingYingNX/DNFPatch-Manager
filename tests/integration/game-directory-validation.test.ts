@@ -15,13 +15,14 @@ afterEach(async () => {
 });
 
 describe("game root subdirectory validation", () => {
-  it("accepts a game root containing both ImagePacks2 and SoundPacks", async () => {
+  it("accepts a game root containing ImagePacks2, SoundPacks and video", async () => {
     const root = await mkdtemp(join(tmpdir(), "dnf-game-root-"));
     temporaryDirectories.push(root);
     const gameRoot = parseGameRoot(join(root, "game"));
     await Promise.all([
       mkdir(join(gameRoot, "ImagePacks2"), { recursive: true }),
       mkdir(join(gameRoot, "SoundPacks"), { recursive: true }),
+      mkdir(join(gameRoot, "video"), { recursive: true }),
     ]);
 
     expect(await assertGameRootHasSubdirectories(gameRoot)).toBe(true);
@@ -36,6 +37,18 @@ describe("game root subdirectory validation", () => {
     expect(await assertGameRootHasSubdirectories(gameRoot)).toBe(false);
   });
 
+  it("rejects a game root missing video", async () => {
+    const root = await mkdtemp(join(tmpdir(), "dnf-game-root-"));
+    temporaryDirectories.push(root);
+    const gameRoot = parseGameRoot(join(root, "game"));
+    await Promise.all([
+      mkdir(join(gameRoot, "ImagePacks2"), { recursive: true }),
+      mkdir(join(gameRoot, "SoundPacks"), { recursive: true }),
+    ]);
+
+    expect(await assertGameRootHasSubdirectories(gameRoot)).toBe(false);
+  });
+
   it("rejects when a required subdirectory is a file rather than a directory", async () => {
     const root = await mkdtemp(join(tmpdir(), "dnf-game-root-"));
     temporaryDirectories.push(root);
@@ -43,6 +56,7 @@ describe("game root subdirectory validation", () => {
     await mkdir(gameRoot, { recursive: true });
     await Promise.all([
       mkdir(join(gameRoot, "ImagePacks2"), { recursive: true }),
+      mkdir(join(gameRoot, "video"), { recursive: true }),
       writeFile(join(gameRoot, "SoundPacks"), "not a directory"),
     ]);
 

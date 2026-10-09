@@ -6,6 +6,8 @@ export const PatchItemSchema = z.object({
   relativePath: z.string(),
   previewRelativePath: z.string().nullable(),
   previewUrl: z.string().nullable(),
+  // Optional so snapshots produced before BK2 support stay readable.
+  videoPreviewUrl: z.string().nullable().optional(),
   size: z.number().nonnegative(),
   modifiedAt: z.string().datetime(),
   enabled: z.boolean(),

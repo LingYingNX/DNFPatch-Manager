@@ -8,12 +8,12 @@ import type {
   GroupSnapshot,
   PatchItem,
 } from "../../shared/library-dto";
+import { isLibraryPatchPath, isVideoPatchPath } from "../../shared/library-patch-extensions";
 import { pathKey } from "../../shared/path-key";
 import { err, ok, type Result } from "../../shared/result";
 import type { VirtualGroupService, VirtualGroupServiceError } from "../groups/group-service";
 import type { VirtualGroup } from "../groups/group-state";
 import { type LibraryPathError, resolveLibraryPath } from "../paths/library-path";
-import { isNpkPath } from "../paths/relative-path";
 import { readGroupMarker } from "./group-marker";
 import { findMatchingPreview, libraryPreviewUrl } from "./library-preview";
 
@@ -57,6 +57,11 @@ function orderCategories(
   });
 }
 
+/** Finds the hover-playback MP4 generated for a BK2 patch, matching it by file stem. */
+function findVideoPreview(fileNames: readonly string[], patchName: string): string | null {
+  const expected = `${win32.basename(patchName, win32.extname(patchName))}.mp4`.toLocaleLowerCase();
+  return fileNames.find((name) => name.toLocaleLowerCase() === expected) ?? null;
+}
 async function scanPatchFiles(
   directory: string,
   relativePath: string,
@@ -66,7 +71,7 @@ async function scanPatchFiles(
 ): Promise<PatchItem[]> {
   const patchNames = fileNames.filter(
     (name) =>
-      isNpkPath(name) &&
+      isLibraryPatchPath(name) &&
       (includedFileNames === undefined || includedFileNames.has(pathKey(name))) &&
       !excludedRelativePaths.has(pathKey(win32.join(relativePath, name))),
   );
@@ -77,6 +82,15 @@ async function scanPatchFiles(
       const previewRelativePath = preview === null ? null : win32.join(relativePath, preview);
       const previewMetadata =
         preview === null ? null : await stat(win32.join(directory, preview), { bigint: true });
+
+      const videoName = isVideoPatchPath(name) ? findVideoPreview(fileNames, name) : null;
+      // The hover MP4 sits in the same directory as its BK2 patch.
+      const videoRelativePath = videoName === null ? null : win32.join(relativePath, videoName);
+      const videoMetadata =
+        videoName === null
+          ? null
+          : await stat(win32.join(directory, videoName), { bigint: true }).catch(() => null);
+
       return {
         kind: "patch",
         name,
@@ -86,6 +100,10 @@ async function scanPatchFiles(
           previewRelativePath === null || previewMetadata === null
             ? null
             : libraryPreviewUrl(previewRelativePath, previewMetadata.mtimeNs),
+        videoPreviewUrl:
+          videoRelativePath === null || videoMetadata === null
+            ? null
+            : libraryPreviewUrl(videoRelativePath, videoMetadata.mtimeNs),
         size: metadata.size,
         modifiedAt: metadata.mtime.toISOString(),
         enabled: false,
@@ -136,7 +154,7 @@ async function scanGroupItem(
     .map((candidate) => candidate.name);
   const groupPreview = findMatchingPreview(groupFileNames, marker.displayName);
   const patchCount = groupEntries.filter(
-    (candidate) => candidate.isFile() && isNpkPath(candidate.name),
+    (candidate) => candidate.isFile() && isLibraryPatchPath(candidate.name),
   ).length;
   return {
     kind: "group",
@@ -270,7 +288,7 @@ export async function scanGroup(
         ),
       )
       .map((member) => win32.basename(member))
-      .filter(isNpkPath)
+      .filter(isLibraryPatchPath)
       .sort((left, right) => left.localeCompare(right, "zh-CN"));
     const patches = await scanPatchFiles(
       category.value,
@@ -380,7 +398,7 @@ async function scanCategoryTree(
       if ((await readGroupMarker(directory)) !== null) {
         const groupEntries = await readdir(directory, { withFileTypes: true });
         groupedPatchCount += groupEntries.filter(
-          (candidate) => candidate.isFile() && isNpkPath(candidate.name),
+          (candidate) => candidate.isFile() && isLibraryPatchPath(candidate.name),
         ).length;
         continue;
       }
@@ -400,7 +418,7 @@ async function scanCategoryTree(
         entries.filter(
           (entry) =>
             entry.isFile() &&
-            isNpkPath(entry.name) &&
+            isLibraryPatchPath(entry.name) &&
             !groupedMembers.has(pathKey(win32.join(relativePath, entry.name))),
         ).length +
         virtualGroups.value.length +

@@ -176,7 +176,7 @@ export function RecycleBinWorkspace({
                   <span>
                     <strong>{entry.originalRelativePath}</strong>
                     <small>
-                      {entry.kind === "group" ? "补丁组" : "NPK 补丁"}
+                      {entry.kind === "group" ? "补丁组" : "补丁"}
                       {entry.size === null ? "" : ` · ${formatRecycleSize(entry.size)}`}
                     </small>
                   </span>

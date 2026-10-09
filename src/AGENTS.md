@@ -1,4 +1,4 @@
-<!-- Managed by agent: keep sections and order; edit content, not structure. Last updated: 2026-09-27 -->
+<!-- Managed by agent: keep sections and order; edit content, not structure. Last updated: 2026-10-09 -->
 
 # AGENTS.md — src
 
@@ -81,7 +81,8 @@ pnpm build
 | 路径比较键（大小写不敏感） | `shared/path-key.ts` 的 `pathKey` | 只换分隔符，**不**折叠 `..`/`.`/重复分隔符 |
 | 判断子路径 | 同上 `isPathWithin` / `isPathWithinKey` | 不要手写 `startsWith(parent + "\\")` |
 | 拒绝绝对路径与 `..` 穿越 | `shared/relative-path-guard.ts` 的 `isSafeRelativePath` | 契约 schema 组合用，勿各自内联正则 |
-| 扩展名判断 `.npk` | `core/paths/relative-path.ts` 的 `isNpkPath` | 勿写 `win32.extname(x).toLocaleLowerCase() === ".npk"` |
+| 扩展名判断 `.npk` | `core/paths/relative-path.ts` 的 `isNpkPath` | 仅用于“必须是 NPK”的严格场景；**补丁库内含 `.bk2`，一律改用下一行** |
+| 补丁库扩展名（`.npk` / `.bk2`） | `shared/library-patch-extensions.ts` 的 `isLibraryPatchPath` / `isVideoPatchPath` / `libraryPatchExtension` / `libraryPatchBaseName` | 库导入、扫描、移动、分组、删除、重命名与安装源校验统一复用；不得另写 basename 或扩展名辅助 |
 | 父级相对路径 | 同上 `parentRelativePath` | 顶层项归一化为 `""` |
 | 去掉 `./` 前缀 | 同上 `normalizeRelativePath` | 不转小写，调用方自行决定 |
 | 已存在路径的身份比较 | 同上 `normalizedPathKey`（`win32.normalize` 后转小写） | 会折叠 `..`/`.`，与 `pathKey` **语义不同，不可互换** |

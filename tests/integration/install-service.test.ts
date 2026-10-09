@@ -327,6 +327,56 @@ describe("install service", () => {
     expect(await readFile(join(gameRoot, "bgm.npk"), "utf8")).toBeTruthy();
   });
 
+  it("routes a BK2 video patch into the video subdirectory", async () => {
+    // Given: a BK2 patch in the library and a game root exposing the video directory.
+    const { paths, gameRoot } = await createInstallFixture();
+    const imageDir = join(gameRoot, "ImagePacks2");
+    const videoDir = join(gameRoot, "video");
+    await Promise.all([mkdir(imageDir), mkdir(videoDir)]);
+    await writeFile(join(paths.libraryRoot, "0A 冰雪女剑buff.bk2"), "bk2-bytes");
+    await writeFile(join(paths.libraryRoot, "sprite.npk"), buildNpkBytes(["sprite/a.img"]));
+    const service = createInstallService({ ...paths, gameRoot });
+
+    // When: the video patch is enabled next to an image patch.
+    const result = await service.enableMany([
+      { kind: "patch", relativePath: "0A 冰雪女剑buff.bk2" },
+      { kind: "patch", relativePath: "sprite.npk" },
+    ]);
+
+    // Then: the BK2 lands in video and the record points at that exact target.
+    expect(result).toEqual({ ok: true, value: { installedCount: 2 } });
+    expect(await readFile(join(videoDir, "0A 冰雪女剑buff.bk2"), "utf8")).toBe("bk2-bytes");
+    const state = JSON.parse(
+      await readFile(join(paths.dataRoot, "installation-state.json"), "utf8"),
+    );
+    expect(state.records.map((record: { targetPath: string }) => record.targetPath).sort()).toEqual(
+      [join(gameRoot, "ImagePacks2", "sprite.npk"), join(videoDir, "0A 冰雪女剑buff.bk2")],
+    );
+
+    // And: disabling removes the routed video target without boundary errors.
+    expect(await service.disable({ kind: "patch", relativePath: "0A 冰雪女剑buff.bk2" })).toEqual({
+      ok: true,
+      value: { removedCount: 1 },
+    });
+    await expect(access(join(videoDir, "0A 冰雪女剑buff.bk2"))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+  });
+
+  it("falls back to the game root for a BK2 when the video subdirectory is missing", async () => {
+    // Given: a BK2 enabled while the game root has no video directory.
+    const { paths, gameRoot } = await createInstallFixture();
+    await writeFile(join(paths.libraryRoot, "clip.bk2"), "bk2-bytes");
+    const service = createInstallService({ ...paths, gameRoot });
+
+    // When: the patch is enabled.
+    const result = await service.enable({ kind: "patch", relativePath: "clip.bk2" });
+
+    // Then: the copy lands in the game root instead of failing.
+    expect(result).toEqual({ ok: true, value: { installedCount: 1 } });
+    expect(await readFile(join(gameRoot, "clip.bk2"), "utf8")).toBe("bk2-bytes");
+  });
+
   it("enables and disables one patch with matching state records", async () => {
     const { paths, gameRoot } = await createInstallFixture();
     await writeFile(join(paths.libraryRoot, "分类A", "coat.npk"), "coat-bytes");

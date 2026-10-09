@@ -66,6 +66,7 @@ export function decorateSnapshotWithPreviews(
         patch.previewRelativePath === null
           ? null
           : (patch.previewUrl ?? libraryPreviewUrl(patch.previewRelativePath)),
+      videoPreviewUrl: patch.videoPreviewUrl ?? null,
     });
   }
   const groups: GroupItem[] = [];

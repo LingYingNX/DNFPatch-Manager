@@ -33,8 +33,8 @@ export type GameDirectoryBinding = {
   readonly updateSettings: (next: AppSettings) => Promise<ApiResult<AppSettings>>;
 };
 
-/** 游戏根目录下必须存在的子目录：贴图与音效补丁的落盘位置。 */
-export const GAME_SUBDIRECTORIES = ["ImagePacks2", "SoundPacks"] as const;
+/** 游戏根目录下必须存在的子目录：贴图、音效与视频补丁的落盘位置。 */
+export const GAME_SUBDIRECTORIES = ["ImagePacks2", "SoundPacks", "video"] as const;
 
 /** 校验游戏根目录是否包含全部必需子目录（真实 FS 探测，缺失任一即不通过）。 */
 export async function assertGameRootHasSubdirectories(gameRoot: string): Promise<boolean> {
@@ -76,7 +76,7 @@ export async function registerGameDirectoryIpc(
     }
   };
 
-  /** 保存前校验 ImagePacks2 / SoundPacks 存在，任一缺失即视为未选到游戏根目录。 */
+  /** 保存前校验 ImagePacks2 / SoundPacks / video 存在，任一缺失即视为未选到游戏根目录。 */
   const assertGameSubdirectoriesExist = async (
     gameRoot: string,
   ): Promise<ApiResult<{ readonly gameDirectory: string | null }> | null> =>

@@ -1,6 +1,6 @@
 <!-- FOR AI AGENTS - Human readability is a side effect, not a goal -->
 <!-- Managed by agent: keep sections and order; edit content, not structure -->
-<!-- Last updated: 2026-09-27 | Last verified: 2026-09-27 -->
+<!-- Last updated: 2026-10-09 | Last verified: 2026-10-09 -->
 
 # AGENTS.md
 

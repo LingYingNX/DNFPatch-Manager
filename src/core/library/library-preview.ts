@@ -1,16 +1,32 @@
-import { copyFile, readdir, readFile, rm } from "node:fs/promises";
+import { copyFile, readdir, readFile, rm, stat } from "node:fs/promises";
 import { win32 } from "node:path";
 import type { LibraryRoot } from "../../main/app-paths";
 import { err, ok, type Result } from "../../shared/result";
 import { type LibraryPathError, resolveLibraryPath } from "../paths/library-path";
 
-export const LIBRARY_PREVIEW_EXTENSIONS = new Set([
+/** Extensions accepted for still previews, both auto-matched and manually picked. */
+export const LIBRARY_IMAGE_PREVIEW_EXTENSIONS = new Set([
   ".bmp",
   ".gif",
   ".jpeg",
   ".jpg",
   ".png",
   ".webp",
+]);
+
+/** Extensions accepted for hover-played preview media (videos only, never stills). */
+export const LIBRARY_VIDEO_PREVIEW_EXTENSIONS = new Set([".mp4", ".webm"]);
+
+/**
+ * Still-preview extension set kept under its historical name: callers that bind a
+ * same-named file to a patch or group, and the manual preview picker, must stay image-only.
+ */
+export const LIBRARY_PREVIEW_EXTENSIONS = LIBRARY_IMAGE_PREVIEW_EXTENSIONS;
+
+/** Everything the dnf-library protocol may serve: stills plus hover videos. */
+export const LIBRARY_MEDIA_PREVIEW_EXTENSIONS = new Set([
+  ...LIBRARY_IMAGE_PREVIEW_EXTENSIONS,
+  ...LIBRARY_VIDEO_PREVIEW_EXTENSIONS,
 ]);
 
 export type LibraryPreviewError =
@@ -51,6 +67,29 @@ export function findMatchingPreview(fileNames: readonly string[], baseName: stri
   );
 }
 
+/**
+ * Every same-named media file for a patch base name: still previews plus hover videos.
+ *
+ * Callers that move, recycle or delete a patch must go through this instead of
+ * `findMatchingPreview`, otherwise the companion MP4 survives the patch it belongs to
+ * and keeps being served for a file that no longer exists.
+ */
+export function findMatchingMediaPreviews(
+  fileNames: readonly string[],
+  baseName: string,
+): readonly string[] {
+  const normalizedBaseName = baseName.toLocaleLowerCase();
+  return fileNames
+    .filter((name) => {
+      const extension = win32.extname(name).toLocaleLowerCase();
+      return (
+        LIBRARY_MEDIA_PREVIEW_EXTENSIONS.has(extension) &&
+        win32.basename(name, win32.extname(name)).toLocaleLowerCase() === normalizedBaseName
+      );
+    })
+    .sort();
+}
+
 export function libraryPreviewUrl(relativePath: string, version?: bigint): string {
   const suffix = version === undefined ? "" : `?v=${encodeURIComponent(String(version))}`;
   return `dnf-library://library/${encodeURIComponent(relativePath.replaceAll("/", "\\"))}${suffix}`;
@@ -82,7 +121,7 @@ export function resolveLibraryPreviewUrl(
     }
     const relativePath = decodeURIComponent(encodedPath);
     const extension = win32.extname(relativePath).toLocaleLowerCase();
-    if (!LIBRARY_PREVIEW_EXTENSIONS.has(extension)) {
+    if (!LIBRARY_MEDIA_PREVIEW_EXTENSIONS.has(extension)) {
       return err({ code: "LIBRARY_PREVIEW_URL_INVALID" });
     }
     const resolved = resolveLibraryPath(libraryRoot, relativePath);
@@ -93,11 +132,78 @@ export function resolveLibraryPreviewUrl(
   }
 }
 
-function imageContentType(path: string): string {
+export function imageContentType(path: string): string {
   const extension = win32.extname(path).toLocaleLowerCase();
   return extension === ".jpg" || extension === ".jpeg"
     ? "image/jpeg"
     : `image/${extension.slice(1)}`;
+}
+
+export function mediaContentType(path: string): string {
+  const extension = win32.extname(path).toLocaleLowerCase();
+  if (extension === ".mp4") return "video/mp4";
+  if (extension === ".webm") return "video/webm";
+  return imageContentType(path);
+}
+
+export type LibraryPreviewFileInfo = {
+  readonly absolutePath: string;
+  readonly size: number;
+  readonly contentType: string;
+};
+
+/** Stats a preview/media URL without reading it, so range requests can be served lazily. */
+export async function statLibraryPreviewFile(
+  libraryRoot: LibraryRoot,
+  value: string,
+): Promise<Result<LibraryPreviewFileInfo, LibraryPreviewReadError>> {
+  const resolved = resolveLibraryPreviewUrl(libraryRoot, value);
+  if (!resolved.ok) return resolved;
+  try {
+    const metadata = await stat(resolved.value);
+    return ok({
+      absolutePath: resolved.value,
+      size: metadata.size,
+      contentType: mediaContentType(resolved.value),
+    });
+  } catch (error) {
+    if (error instanceof Error) return err({ code: "LIBRARY_PREVIEW_NOT_FOUND" });
+    throw error;
+  }
+}
+
+export type ByteRangeError = { readonly code: "RANGE_UNSATISFIABLE" };
+
+export type ByteRange = { readonly start: number; readonly end: number };
+
+/**
+ * Parses a single `bytes=` request range.
+ * Returns `null` when there is no usable range header (caller should answer 200),
+ * and an error only for a syntactically valid but unsatisfiable range (416).
+ */
+export function parseByteRange(
+  header: string | null,
+  size: number,
+): Result<ByteRange, ByteRangeError> | null {
+  if (header === null) return null;
+  const match = /^bytes=(\d*)-(\d*)$/u.exec(header.trim());
+  if (match === null) return null;
+  const [, rawStart = "", rawEnd = ""] = match;
+  if (rawStart === "" && rawEnd === "") return null;
+
+  if (rawStart === "") {
+    const suffix = Number(rawEnd);
+    if (suffix === 0) return err({ code: "RANGE_UNSATISFIABLE" });
+    const start = Math.max(0, size - suffix);
+    return ok({ start, end: size - 1 });
+  }
+
+  const start = Number(rawStart);
+  if (start >= size) return err({ code: "RANGE_UNSATISFIABLE" });
+  if (rawEnd === "") return ok({ start, end: size - 1 });
+  const end = Math.min(Number(rawEnd), size - 1);
+  if (end < start) return err({ code: "RANGE_UNSATISFIABLE" });
+  return ok({ start, end });
 }
 
 export async function readLibraryPreviewFile(
@@ -111,7 +217,7 @@ export async function readLibraryPreviewFile(
   try {
     return ok({
       data: await readFile(resolved.value),
-      contentType: imageContentType(resolved.value),
+      contentType: mediaContentType(resolved.value),
     });
   } catch (error) {
     if (error instanceof Error) return err({ code: "LIBRARY_PREVIEW_NOT_FOUND" });

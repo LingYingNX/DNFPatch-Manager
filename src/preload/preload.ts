@@ -40,6 +40,7 @@ import {
   WindowStateSchema,
 } from "../shared/ipc-contracts";
 import { CategorySnapshotSchema } from "../shared/library-dto";
+import { LibraryChangedEventSchema } from "../shared/library-events";
 import {
   AddItemsToPresetRequestSchema,
   CreatePresetRequestSchema,
@@ -312,6 +313,14 @@ const api = {
       ipcRenderer.on(IPC_CHANNELS.updateEvent, handleUpdateEvent);
       return () => ipcRenderer.removeListener(IPC_CHANNELS.updateEvent, handleUpdateEvent);
     },
+  },
+  subscribeLibraryChanges: (listener) => {
+    const handleLibraryChange = (_event: IpcRendererEvent, value: unknown): void => {
+      const parsed = LibraryChangedEventSchema.safeParse(value);
+      if (parsed.success) listener(parsed.data);
+    };
+    ipcRenderer.on(IPC_CHANNELS.libraryChanged, handleLibraryChange);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.libraryChanged, handleLibraryChange);
   },
 } satisfies DnfApi;
 

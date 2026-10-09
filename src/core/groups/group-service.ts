@@ -2,12 +2,13 @@ import { randomUUID } from "node:crypto";
 import { lstat } from "node:fs/promises";
 import { win32 } from "node:path";
 import type { DataRoot, LibraryRoot } from "../../main/app-paths";
+import { isLibraryPatchPath } from "../../shared/library-patch-extensions";
 import { err, ok, type Result } from "../../shared/result";
 import { createAsyncMutex } from "../concurrency/async-mutex";
 import type { FileTransactionStep } from "../filesystem/file-transaction";
 import { LibraryItemNameSchema } from "../library/library-item-name";
 import { type LibraryPathError, resolveLibraryPath } from "../paths/library-path";
-import { isNpkPath, normalizedPathKey, parentRelativePath } from "../paths/relative-path";
+import { normalizedPathKey, parentRelativePath } from "../paths/relative-path";
 import type { StateStoreError } from "../state/atomic-json-store";
 import {
   createVirtualGroupsStore,
@@ -271,11 +272,11 @@ export function createVirtualGroupService(
           }
           members.add(key);
           if (
-            !isNpkPath(memberRelativePath) ||
+            !isLibraryPatchPath(memberRelativePath) ||
             !isSameRelativePath(parentRelativePath(memberRelativePath), categoryRelativePath)
           ) {
             return err({
-              code: isNpkPath(memberRelativePath)
+              code: isLibraryPatchPath(memberRelativePath)
                 ? "GROUP_MEMBER_OUTSIDE_CATEGORY"
                 : "INVALID_GROUP_MEMBER",
               relativePath: memberRelativePath,
@@ -351,11 +352,11 @@ export function createVirtualGroupService(
         for (const memberRelativePath of normalizedMembers) {
           const key = virtualGroupMemberPathKey(memberRelativePath);
           if (
-            !isNpkPath(memberRelativePath) ||
+            !isLibraryPatchPath(memberRelativePath) ||
             !isSameRelativePath(parentRelativePath(memberRelativePath), target.categoryRelativePath)
           ) {
             return err({
-              code: isNpkPath(memberRelativePath)
+              code: isLibraryPatchPath(memberRelativePath)
                 ? "GROUP_MEMBER_OUTSIDE_CATEGORY"
                 : "INVALID_GROUP_MEMBER",
               relativePath: memberRelativePath,

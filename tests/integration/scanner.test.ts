@@ -1,8 +1,9 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { createVirtualGroupService } from "../../src/core/groups/group-service";
+import { libraryPreviewUrl } from "../../src/core/library/library-preview";
 import { scanCategory, scanGroup } from "../../src/core/library/scanner";
 import { resolveAppPaths } from "../../src/main/app-paths";
 
@@ -329,4 +330,53 @@ describe("real library scanner", () => {
       ]),
     );
   });
+
+  it("lists BK2 patches, counts them, and binds a same-named MP4 as the video preview", async () => {
+    // Given: a category holding one image NPK, one BK2 with a generated preview set,
+    // and one BK2 whose preview media has not been generated yet.
+    const projectRoot = await mkdtemp(join(tmpdir(), "dnf-library-bk2-"));
+    temporaryDirectories.push(projectRoot);
+    const { libraryRoot } = resolveAppPaths({ mode: "development", projectRoot });
+    const category = join(libraryRoot, "88");
+    await mkdir(category, { recursive: true });
+    await Promise.all([
+      writeFile(join(category, "coat.npk"), "coat"),
+      writeFile(join(category, "0A 冰雪女剑buff.bk2"), "bk2 bytes"),
+      writeFile(join(category, "0A 冰雪女剑buff.mp4"), "hover playback"),
+      writeFile(join(category, "0A 冰雪女剑buff.gif"), "middle-frame still"),
+      writeFile(join(category, "0A 女法buff.bk2"), "bk2 bytes"),
+      writeFile(join(category, "clip.bik"), "unsupported"),
+    ]);
+
+    // When: the category is scanned.
+    const result = await scanCategory(libraryRoot, "88");
+
+    // Then: both BK2 files are listed and counted, the still preview binds by stem,
+    // and only the BK2 with an MP4 next to it exposes a video preview URL.
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.patchCount).toBe(3);
+    expect(result.value.patches.map((patch) => patch.name)).toEqual([
+      "0A 冰雪女剑buff.bk2",
+      "0A 女法buff.bk2",
+      "coat.npk",
+    ]);
+    const buffed = result.value.patches[0];
+    expect(buffed?.previewRelativePath).toBe("88\\0A 冰雪女剑buff.gif");
+    expect(buffed?.videoPreviewUrl).toBe(
+      libraryPreviewUrl(
+        "88\\0A 冰雪女剑buff.mp4",
+        await mtimeNs(join(category, "0A 冰雪女剑buff.mp4")),
+      ),
+    );
+    const pending = result.value.patches[1];
+    expect(pending?.previewRelativePath).toBeNull();
+    expect(pending?.previewUrl).toBeNull();
+    expect(pending?.videoPreviewUrl).toBeNull();
+    expect(result.value.patches[2]?.videoPreviewUrl).toBeNull();
+  });
 });
+
+async function mtimeNs(path: string): Promise<bigint> {
+  return (await stat(path, { bigint: true })).mtimeNs;
+}

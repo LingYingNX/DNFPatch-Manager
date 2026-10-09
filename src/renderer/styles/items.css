@@ -168,6 +168,37 @@
   transform: scale(1);
 }
 
+.item-preview-hover-video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  display: block;
+  width: 200cqw;
+  height: auto;
+  max-width: none;
+  aspect-ratio: auto;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-control);
+  background: #000;
+  object-fit: contain;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.94);
+  transform-origin: top left;
+  transition:
+    opacity var(--motion-standard) var(--easing-standard),
+    transform var(--motion-standard) var(--easing-standard),
+    visibility var(--motion-standard) var(--easing-standard);
+}
+
+.item-preview-hover-zone:hover .item-preview-hover-video {
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1);
+}
+
 .item-drag-preview {
   position: fixed;
   top: -10000px;

@@ -84,11 +84,16 @@ async function copyFileExclusive(
 }
 
 /**
- * 路由目标目录：按 NPK 内容分类选 ImagePacks2 / SoundPacks；
+ * 路由目标目录：按补丁类型选 ImagePacks2 / SoundPacks / video；
  * 子目录缺失（外部被删或旧测试环境）时回落 gameRoot 直属，不阻塞安装。
  */
 async function resolveTargetDir(context: InstallBatchContext, kind: NpkPatchKind): Promise<string> {
-  const routed = kind === "sound" ? context.soundTargetDir : context.imageTargetDir;
+  const routed =
+    kind === "sound"
+      ? context.soundTargetDir
+      : kind === "video"
+        ? context.videoTargetDir
+        : context.imageTargetDir;
   return (await pathExists(routed)) ? routed : context.gameRoot;
 }
 

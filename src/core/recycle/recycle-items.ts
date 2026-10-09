@@ -1,10 +1,11 @@
 import { lstat, mkdir, rename, rm } from "node:fs/promises";
 import { win32 } from "node:path";
+import { isLibraryPatchPath } from "../../shared/library-patch-extensions";
 import { err, ok, type Result } from "../../shared/result";
 import type { FileTransactionStep } from "../filesystem/file-transaction";
 import { isNotFoundError, pathExists } from "../filesystem/path-exists";
 import { resolveLibraryPath } from "../paths/library-path";
-import { isNpkPath, normalizedPathKey } from "../paths/relative-path";
+import { normalizedPathKey } from "../paths/relative-path";
 import { type RecycleEntry, RecycleEntrySchema, type RecycleManifest } from "../state/schemas";
 import {
   readRecycleManifest,
@@ -56,7 +57,7 @@ export async function prepareRecycleItems(
       const source = resolveLibraryPath(context.libraryRoot, item.relativePath);
       if (!source.ok) return source;
       const metadata = await lstat(source.value);
-      const matches = metadata.isFile() && isNpkPath(source.value);
+      const matches = metadata.isFile() && isLibraryPatchPath(source.value);
       if (!matches) return err({ code: "SOURCE_TYPE_MISMATCH", relativePath: item.relativePath });
 
       const id = context.createId();
@@ -151,7 +152,7 @@ async function expandRecycleItems(
       if (!source.ok) return source;
       try {
         const metadata = await lstat(source.value);
-        if (!metadata.isFile() || !isNpkPath(relativePath)) {
+        if (!metadata.isFile() || !isLibraryPatchPath(relativePath)) {
           continue;
         }
         const key = normalizedPathKey(relativePath);

@@ -1,6 +1,7 @@
 import { lstat, readdir } from "node:fs/promises";
 import { win32 } from "node:path";
 import type { LibraryRoot } from "../../main/app-paths";
+import { isLibraryPatchPath } from "../../shared/library-patch-extensions";
 import { pathKey } from "../../shared/path-key";
 import { err, ok, type Result } from "../../shared/result";
 import type { ManagedImageAssets, ManagedImageError } from "../assets/managed-image-assets";
@@ -12,7 +13,6 @@ import {
   type LibraryPreviewError,
 } from "../library/library-preview";
 import { resolveLibraryPath } from "../paths/library-path";
-import { isNpkPath } from "../paths/relative-path";
 import type { AtomicJsonStore, StateStoreError } from "../state/atomic-json-store";
 import type { PreviewState } from "../state/schemas";
 import { readPreviewState, writePreviewState } from "./preview-state";
@@ -133,7 +133,7 @@ async function hasMatchingLibraryPreview(
   if (!patch.ok) return patch;
   try {
     const [metadata, fileNames] = await Promise.all([lstat(patch.value), readdir(directory.value)]);
-    if (!metadata.isFile() || !isNpkPath(relativePath)) {
+    if (!metadata.isFile() || !isLibraryPatchPath(relativePath)) {
       return ok(null);
     }
     const baseName = win32.basename(relativePath, win32.extname(relativePath));

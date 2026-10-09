@@ -7,7 +7,7 @@ describe("API error translation", () => {
       ok: false,
       error: {
         code: "GROUP_CONTENT_NOT_PATCHES",
-        message: "补丁组包含无效内容，只允许 NPK 和支持格式的预览图",
+        message: "补丁组包含无效内容，只允许 NPK、BK2 和支持格式的预览图",
       },
     });
   });

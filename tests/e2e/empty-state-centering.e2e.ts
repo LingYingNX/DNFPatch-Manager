@@ -38,7 +38,7 @@ async function readEmptyStateLayout(page: Page): Promise<EmptyStateLayout> {
     emptyState.boundingBox(),
     emptyState.locator(".empty-icon").boundingBox(),
     emptyState.getByRole("heading", { name: "补丁库还是空的" }).boundingBox(),
-    emptyState.getByText("将 NPK 文件拖入此处开始整理。").boundingBox(),
+    emptyState.getByText("将 NPK 或 BK2 文件拖入此处开始整理。").boundingBox(),
   ]);
   expect(emptyStateBox).not.toBeNull();
   expect(iconBox).not.toBeNull();

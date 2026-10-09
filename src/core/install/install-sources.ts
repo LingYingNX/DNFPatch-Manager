@@ -1,11 +1,11 @@
 import { lstat } from "node:fs/promises";
 import { win32 } from "node:path";
 import type { LibraryRoot } from "../../main/app-paths";
+import { isLibraryPatchPath } from "../../shared/library-patch-extensions";
 import { err, ok, type Result } from "../../shared/result";
 import { isNotFoundError } from "../filesystem/path-exists";
 import type { VirtualGroupService, VirtualGroupServiceError } from "../groups/group-service";
 import { type LibraryPathError, resolveLibraryPath } from "../paths/library-path";
-import { isNpkPath } from "../paths/relative-path";
 
 export type InstallSource = {
   readonly name: string;
@@ -40,7 +40,7 @@ export async function resolveInstallSources(
       if (!source.ok) return source;
       try {
         const metadata = await lstat(source.value);
-        if (!metadata.isFile() || !isNpkPath(relativePath)) {
+        if (!metadata.isFile() || !isLibraryPatchPath(relativePath)) {
           continue;
         }
         sources.push({
@@ -85,7 +85,7 @@ async function resolvePatchSource(
 
   try {
     const metadata = await lstat(source.value);
-    if (!metadata.isFile() || !isNpkPath(source.value)) {
+    if (!metadata.isFile() || !isLibraryPatchPath(source.value)) {
       return err({ code: "SOURCE_TYPE_MISMATCH", relativePath });
     }
     return ok([

@@ -203,6 +203,60 @@ describe("recycle service", () => {
     expect(await readFile(join(category, "other.png"), "utf8")).toBe("keep");
   });
 
+  it("deletes the hover MP4 preview of a recycled BK2 when emptying", async () => {
+    // Given: a BK2 patch with both its still cover and its hover MP4 alongside it.
+    const paths = await createRecycleFixture();
+    const category = join(paths.libraryRoot, "分类A");
+    await Promise.all([
+      writeFile(join(category, "clip.bk2"), "bk2"),
+      writeFile(join(category, "clip.jpg"), "cover"),
+      writeFile(join(category, "clip.mp4"), "playback"),
+      writeFile(join(category, "keep.mp4"), "keep"),
+    ]);
+    const service = createRecycleService({
+      ...paths,
+      createId: () => "a2021aa5-e024-4106-a0a3-f0874d4c9ec9",
+    });
+    await service.recycle({ kind: "patch", relativePath: "分类A\\clip.bk2" });
+
+    // When: the recycle bin is emptied.
+    const emptied = await service.empty({ confirmed: true });
+
+    // Then: both media previews are removed, and an unrelated MP4 survives.
+    expect(emptied).toEqual({ ok: true, value: { removedCount: 1 } });
+    await expect(access(join(category, "clip.jpg"))).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(access(join(category, "clip.mp4"))).rejects.toMatchObject({ code: "ENOENT" });
+    expect(await readFile(join(category, "keep.mp4"), "utf8")).toBe("keep");
+  });
+
+  it("deletes the hover MP4 preview when individually deleting a recycled BK2", async () => {
+    // Given: a recycled BK2 whose media previews still sit in the category.
+    const paths = await createRecycleFixture();
+    const category = join(paths.libraryRoot, "分类A");
+    await Promise.all([
+      writeFile(join(category, "clip.bk2"), "bk2"),
+      writeFile(join(category, "clip.mp4"), "playback"),
+    ]);
+    const service = createRecycleService({
+      ...paths,
+      createId: () => "a2021aa5-e024-4106-a0a3-f0874d4c9ec9",
+    });
+    const recycled = await service.recycle({ kind: "patch", relativePath: "分类A\\clip.bk2" });
+    expect(recycled.ok).toBe(true);
+
+    // When: only that recycled entry is deleted.
+    const deleted = await service.deleteMany({
+      ids: ["a2021aa5-e024-4106-a0a3-f0874d4c9ec9"],
+    });
+
+    // Then: the orphaned hover video goes with it.
+    expect(deleted).toEqual({
+      ok: true,
+      value: { deletedIds: ["a2021aa5-e024-4106-a0a3-f0874d4c9ec9"] },
+    });
+    await expect(access(join(category, "clip.mp4"))).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
   it("requires explicit confirmation before emptying recycled files", async () => {
     const paths = await createRecycleFixture();
     const patch = join(paths.libraryRoot, "分类A", "coat.npk");

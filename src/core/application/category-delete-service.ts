@@ -1,12 +1,12 @@
 import { readdir } from "node:fs/promises";
 import { win32 } from "node:path";
 import type { LibraryRoot } from "../../main/app-paths";
+import { isLibraryPatchPath } from "../../shared/library-patch-extensions";
 import { isPathWithin, pathKey } from "../../shared/path-key";
 import { err, type Result } from "../../shared/result";
 import type { VirtualGroupService } from "../groups/group-service";
 import { createCategoryCommands } from "../library/category-commands";
 import { resolveLibraryPath } from "../paths/library-path";
-import { isNpkPath } from "../paths/relative-path";
 import type { RecycleItem } from "../recycle/recycle-service";
 
 type CategoryDeleteError = { readonly code: string };
@@ -31,7 +31,7 @@ async function collectNpkFiles(directory: string, relativePath: string): Promise
   const files: string[] = [];
   for (const entry of entries) {
     const childRelativePath = win32.join(relativePath, entry.name);
-    if (entry.isFile() && isNpkPath(entry.name)) {
+    if (entry.isFile() && isLibraryPatchPath(entry.name)) {
       files.push(childRelativePath);
     } else if (entry.isDirectory()) {
       files.push(...(await collectNpkFiles(win32.join(directory, entry.name), childRelativePath)));

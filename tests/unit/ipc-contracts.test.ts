@@ -244,11 +244,25 @@ describe("IPC request contracts", () => {
   it.each([
     { categoryRelativePath: "", sourcePaths: ["relative.npk"] },
     { categoryRelativePath: "", sourcePaths: ["C:\\drop\\notes.txt"] },
+    { categoryRelativePath: "", sourcePaths: ["C:\\drop\\clip.bik"] },
+    { categoryRelativePath: "", sourcePaths: ["C:\\drop\\clip.bk2.bak"] },
   ])("rejects an invalid dropped-patch IPC request", (input) => {
     // Given/When: an untrusted dropped-file request reaches the IPC schema.
     const result = ImportDroppedPatchesRequestSchema.safeParse(input);
 
-    // Then: only absolute NPK paths can cross into the main process.
+    // Then: only absolute NPK/BK2 paths can cross into the main process.
     expect(result.success).toBe(false);
   });
+
+  it.each(["C:\\drop\\coat.npk", "C:\\drop\\coat.NPK", "D:\\视频\\0A 冰雪女剑buff.bk2"])(
+    "accepts an absolute NPK or BK2 dropped path (%s)",
+    (sourcePath) => {
+      expect(
+        ImportDroppedPatchesRequestSchema.safeParse({
+          categoryRelativePath: "",
+          sourcePaths: [sourcePath],
+        }).success,
+      ).toBe(true);
+    },
+  );
 });

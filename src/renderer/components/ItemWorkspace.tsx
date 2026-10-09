@@ -16,6 +16,7 @@ import {
   Ungroup,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { libraryPatchBaseName, libraryPatchExtension } from "../../shared/library-patch-extensions";
 import {
   decodeWorkspaceItemDrag,
   encodeWorkspaceItemDrag,
@@ -112,12 +113,20 @@ function moveTargetActions(
 }
 
 function renameInputValue(item: WorkspaceItem): string {
-  return item.kind === "patch" ? item.name.replace(/\.npk$/iu, "") : item.name;
+  return item.kind === "patch" ? libraryPatchBaseName(item.name) : item.name;
 }
 
 function renameFileName(item: WorkspaceItem, value: string): string {
-  if (item.kind !== "patch" || /\.npk$/iu.test(value)) return value;
-  return `${value}.npk`;
+  if (item.kind !== "patch") return value;
+  // 保留补丁原有扩展名（.npk / .bk2），不要把 BK2 改成 NPK。
+  const extension = libraryPatchExtension(item.name);
+  return value.toLocaleLowerCase().endsWith(extension) ? value : `${value}${extension}`;
+}
+
+/** 悬停播放用的视频地址；没有生成播放素材（或缺转换器）时返回 null，回落到图片放大。 */
+function hoverVideoUrl(item: WorkspaceItem): string | null {
+  if (item.kind !== "patch") return null;
+  return item.videoPreviewUrl ?? null;
 }
 
 function intersects(box: SelectionBox, element: DOMRect): boolean {
@@ -538,7 +547,7 @@ export function ItemWorkspace(props: ItemWorkspaceProps): React.JSX.Element {
             <h3>{props.items.length === 0 ? "补丁库还是空的" : "没有符合条件的项目"}</h3>
             <p>
               {props.items.length === 0
-                ? "将 NPK 文件拖入此处开始整理。"
+                ? "将 NPK 或 BK2 文件拖入此处开始整理。"
                 : "调整搜索词或状态筛选。"}
             </p>
           </div>
@@ -746,9 +755,30 @@ export function ItemWorkspace(props: ItemWorkspaceProps): React.JSX.Element {
                     event.stopPropagation();
                     props.onSelectPreview(item);
                   }}
+                  onMouseEnter={(event) => {
+                    const video = event.currentTarget.querySelector("video");
+                    if (video !== null) void video.play().catch(() => {});
+                  }}
+                  onMouseLeave={(event) => {
+                    const video = event.currentTarget.querySelector("video");
+                    if (video !== null) {
+                      video.pause();
+                      video.currentTime = 0;
+                    }
+                  }}
                 >
                   <span className="item-preview-hover-dot" />
-                  {item.previewUrl === null ? null : (
+                  {hoverVideoUrl(item) !== null ? (
+                    // 视频预览优先于静态图片：卡片左上角悬停时直接播放。
+                    <video
+                      className="item-preview-hover-video"
+                      loop
+                      muted
+                      playsInline
+                      preload="metadata"
+                      src={hoverVideoUrl(item) ?? undefined}
+                    />
+                  ) : item.previewUrl === null ? null : (
                     <img alt="" className="item-preview-hover-image" src={item.previewUrl} />
                   )}
                 </span>

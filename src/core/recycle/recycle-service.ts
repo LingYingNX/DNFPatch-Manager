@@ -10,7 +10,7 @@ import {
 } from "../filesystem/file-transaction";
 import { isNotFoundError, pathExists } from "../filesystem/path-exists";
 import type { VirtualGroupService, VirtualGroupServiceError } from "../groups/group-service";
-import { findMatchingPreview } from "../library/library-preview";
+import { findMatchingMediaPreviews } from "../library/library-preview";
 import { type LibraryPathError, resolveLibraryPath } from "../paths/library-path";
 import type { PreviewService, PreviewServiceError } from "../previews/preview-service";
 import type { StateStoreError } from "../state/atomic-json-store";
@@ -337,7 +337,9 @@ async function removeMatchingLibraryPreview(
     if (isNotFoundError(error)) return;
     throw error;
   }
-  const previewName = findMatchingPreview(names, baseName);
-  if (previewName === null) return;
-  await rm(win32.join(directory.value, previewName), { force: true });
+  // 同名媒体可能有多份：静态封面与 MP4 播放素材都要跟着补丁一起清掉，
+  // 否则删除后 MP4 仍留在库里，并继续被 dnf-library 协议提供给已不存在的补丁。
+  for (const mediaName of findMatchingMediaPreviews(names, baseName)) {
+    await rm(win32.join(directory.value, mediaName), { force: true });
+  }
 }

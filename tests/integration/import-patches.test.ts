@@ -95,4 +95,90 @@ describe("patch import", () => {
     });
     expect(await readFile(join(category, "coat.npk"), "utf8")).toBe("new-coat");
   });
+
+  it("imports a BK2 video patch alongside NPK patches", async () => {
+    // Given: an incoming folder with one NPK and one BK2.
+    const { sourceDirectory, category, libraryRoot } = await createImportFixture();
+    const patch = join(sourceDirectory, "coat.npk");
+    const video = join(sourceDirectory, "0A 冰雪女剑buff.bk2");
+    await Promise.all([writeFile(patch, "coat"), writeFile(video, "bk2-bytes")]);
+
+    // When: both are imported into one category.
+    const result = await importPatches({
+      libraryRoot,
+      categoryRelativePath: "鬼剑士女",
+      sourcePaths: [patch, video],
+    });
+
+    // Then: the BK2 is copied verbatim under its original name.
+    expect(result).toEqual({
+      ok: true,
+      value: {
+        importedRelativePaths: ["鬼剑士女\\coat.npk", "鬼剑士女\\0A 冰雪女剑buff.bk2"],
+        duplicateRelativePaths: [],
+      },
+    });
+    expect(await readFile(join(category, "0A 冰雪女剑buff.bk2"), "utf8")).toBe("bk2-bytes");
+  });
+
+  it("rejects a .bik file because only .bk2 is a supported video patch", async () => {
+    // Given: an incoming folder holding a Bink 1 (.bik) file.
+    const { sourceDirectory, category, libraryRoot } = await createImportFixture();
+    const bik = join(sourceDirectory, "legacy.bik");
+    await writeFile(bik, "bink1-bytes");
+
+    // When: the import is attempted.
+    const result = await importPatches({
+      libraryRoot,
+      categoryRelativePath: "鬼剑士女",
+      sourcePaths: [bik],
+    });
+
+    // Then: the unsupported video container is refused before any copy.
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "INVALID_IMPORT_SOURCE", sourcePath: bik },
+    });
+    await expect(access(join(category, "legacy.bik"))).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("treats an identical BK2 as a duplicate and refuses a differing one", async () => {
+    // Given: one BK2 already in the library and two incoming BK2 files,
+    // one byte-identical and one with different content.
+    const { sourceDirectory, category, libraryRoot } = await createImportFixture();
+    const same = join(sourceDirectory, "same.bk2");
+    await writeFile(join(category, "same.bk2"), "existing-bk2");
+    await Promise.all([writeFile(same, "existing-bk2")]);
+
+    // When: the identical BK2 is imported.
+    const duplicated = await importPatches({
+      libraryRoot,
+      categoryRelativePath: "鬼剑士女",
+      sourcePaths: [same],
+    });
+
+    // Then: it is reported as a duplicate without rewriting the library copy.
+    expect(duplicated).toEqual({
+      ok: true,
+      value: {
+        importedRelativePaths: [],
+        duplicateRelativePaths: ["鬼剑士女\\same.bk2"],
+      },
+    });
+
+    // And: a BK2 whose bytes differ blocks the whole import.
+    const other = join(sourceDirectory, "other.bk2");
+    await writeFile(join(category, "other.bk2"), "existing-other");
+    await writeFile(other, "incoming-other");
+    expect(
+      await importPatches({
+        libraryRoot,
+        categoryRelativePath: "鬼剑士女",
+        sourcePaths: [other],
+      }),
+    ).toEqual({
+      ok: false,
+      error: { code: "TARGET_CONFLICT", relativePath: "鬼剑士女\\other.bk2" },
+    });
+  });
 });

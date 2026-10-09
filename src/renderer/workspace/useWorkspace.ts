@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DnfApi, RecycleEntryDto } from "../../shared/ipc-contracts";
 import type { CategorySnapshot } from "../../shared/library-dto";
+import { isLibraryPatchPath } from "../../shared/library-patch-extensions";
 import {
   type EnabledCounts,
   type EnabledFilter,
@@ -146,6 +147,18 @@ export function useWorkspace(
     return scanNavigation("");
   }, [scan, scanNavigation, scanPath]);
 
+  // 主进程在扫描后补生成 BK2 预览属于带外改动：完成后推送事件，这里重新扫描拿新 URL。
+  const refreshRef = useRef(refresh);
+  useEffect(() => {
+    refreshRef.current = refresh;
+  }, [refresh]);
+  useEffect(() => {
+    if (client === undefined) return;
+    return client.subscribeLibraryChanges(() => {
+      void refreshRef.current();
+    });
+  }, [client]);
+
   useEffect(() => {
     void scan(scanPath);
   }, [scan, scanPath]);
@@ -179,8 +192,8 @@ export function useWorkspace(
       setNotice({ tone: "error", message: "桌面接口不可用，请重新启动应用。" });
       return;
     }
-    if (files.some((file) => !file.name.toLocaleLowerCase().endsWith(".npk"))) {
-      setNotice({ tone: "error", message: "只能拖入 NPK 补丁文件。" });
+    if (files.some((file) => !isLibraryPatchPath(file.name))) {
+      setNotice({ tone: "error", message: "只能拖入 NPK 或 BK2 补丁文件。" });
       return;
     }
     try {

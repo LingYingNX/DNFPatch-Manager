@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { stat } from "node:fs/promises";
 import { win32 } from "node:path";
 import type { LibraryRoot } from "../../main/app-paths";
+import { isLibraryPatchPath } from "../../shared/library-patch-extensions";
 import type {
   AddItemsToPresetRequest,
   CreatePresetRequest,
@@ -15,7 +16,6 @@ import type {
 import { err, ok, type Result } from "../../shared/result";
 import type { InstallService, InstallServiceError } from "../install/install-service";
 import { type LibraryPathError, resolveLibraryPath } from "../paths/library-path";
-import { isNpkPath } from "../paths/relative-path";
 import {
   type AtomicJsonStore,
   readOrFallback,
@@ -123,7 +123,7 @@ export function createPresetService(options: PresetServiceOptions): PresetServic
 
     try {
       const metadata = await stat(resolved.value);
-      if (!metadata.isFile() || !isNpkPath(normalizedReference.relativePath)) {
+      if (!metadata.isFile() || !isLibraryPatchPath(normalizedReference.relativePath)) {
         return err({
           code: "PRESET_ITEM_INVALID",
           relativePath: normalizedReference.relativePath,

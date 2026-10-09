@@ -21,7 +21,6 @@ import { createCategoryStyleService } from "../../core/library/category-style-se
 import { createLibraryCommands } from "../../core/library/library-commands";
 import { scanCategory, scanGroup } from "../../core/library/scanner";
 import { resolveLibraryPath } from "../../core/paths/library-path";
-import { isNpkPath } from "../../core/paths/relative-path";
 import { createPreviewService } from "../../core/previews/preview-service";
 import { createPreviewStateStore } from "../../core/previews/preview-state";
 import { createRecycleService } from "../../core/recycle/recycle-service";
@@ -46,7 +45,12 @@ import {
   ScanGroupRequestSchema,
   ScanRequestSchema,
 } from "../../shared/ipc-contracts";
+import { isLibraryPatchPath } from "../../shared/library-patch-extensions";
 import type { AppPaths } from "../app-paths";
+import {
+  collectMissingVideoPreviews,
+  createVideoPreviewScheduler,
+} from "../library/video-preview-scheduler";
 import { apiError, toApiResult } from "./api-result";
 import { registerAppearanceIpc } from "./appearance-ipc";
 import { registerCategoryCommandIpc } from "./category-command-ipc";
@@ -134,6 +138,20 @@ export async function registerIpc(
     win32.join(paths.dataRoot, "category-styles.json"),
   );
   registerCategoryTransferIpc({ categoryOrder, categoryStyle, paths });
+
+  // 手动复制进库的 .bk2 不经过导入 IPC，只在扫描后发现缺预览时后台补生成。
+  const videoPreviewScheduler = createVideoPreviewScheduler({
+    libraryRoot: paths.libraryRoot,
+    searchRoots: [win32.dirname(paths.libraryRoot)],
+    onGenerated: (relativePaths) => {
+      if (!window.isDestroyed()) {
+        window.webContents.send(IPC_CHANNELS.libraryChanged, {
+          kind: "video-previews-generated",
+          relativePaths: [...relativePaths],
+        });
+      }
+    },
+  });
   registerCategoryStyleIpc(categoryStyle);
 
   const mutationMutex = createAsyncMutex();
@@ -205,6 +223,8 @@ export async function registerIpc(
         ? groupState.value.groups.map((group) => [group.id, group.memberRelativePaths] as const)
         : [],
     );
+    // 扫描不等待补生成：转换在后台串行跑，完成后推送事件让渲染进程重新扫描。
+    videoPreviewScheduler.schedule(collectMissingVideoPreviews(scanned.value.patches));
     const installed = decorateSnapshotWithInstallation(
       scanned.value,
       installation.ok ? installation.value.state : emptyInstallationState(),
@@ -246,7 +266,7 @@ export async function registerIpc(
   });
 
   register(IPC_CHANNELS.revealPatch, RevealPatchRequestSchema, async ({ relativePath }) => {
-    if (!isNpkPath(relativePath)) {
+    if (!isLibraryPatchPath(relativePath)) {
       return { ok: false, error: apiError("INVALID_INPUT") };
     }
     const source = resolveLibraryPath(paths.libraryRoot, relativePath);

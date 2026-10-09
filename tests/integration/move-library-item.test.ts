@@ -96,4 +96,61 @@ describe("move library item", () => {
       value: { name: "Renamed bundle", categoryRelativePath: "CategoryA" },
     });
   });
+
+  it("moves the still cover and the hover MP4 along with a renamed BK2", async () => {
+    // Given: a BK2 patch carrying both a JPG cover and a hover MP4.
+    const { groups, paths } = await createFixture();
+    const categoryA = join(paths.libraryRoot, "CategoryA");
+    await Promise.all([
+      writeFile(join(categoryA, "clip.bk2"), "bk2"),
+      writeFile(join(categoryA, "clip.jpg"), "cover"),
+      writeFile(join(categoryA, "clip.mp4"), "playback"),
+    ]);
+
+    // When: it is renamed in place.
+    const result = await moveLibraryItem(
+      {
+        libraryRoot: paths.libraryRoot,
+        kind: "patch",
+        sourceRelativePath: "CategoryA\\clip.bk2",
+        targetDirectoryRelativePath: "CategoryA",
+        newName: "renamed.bk2",
+      },
+      { groups },
+    );
+
+    // Then: both media previews follow the renamed patch and none stay behind.
+    expect(result).toEqual({ ok: true, value: { relativePath: "CategoryA\\renamed.bk2" } });
+    await expect(readFile(join(categoryA, "renamed.jpg"), "utf8")).resolves.toBe("cover");
+    await expect(readFile(join(categoryA, "renamed.mp4"), "utf8")).resolves.toBe("playback");
+    await expect(access(join(categoryA, "clip.jpg"))).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(access(join(categoryA, "clip.mp4"))).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("moves the hover MP4 when a BK2 is moved to another category", async () => {
+    // Given: a BK2 with a same-named MP4 in one category.
+    const { groups, paths } = await createFixture();
+    const categoryA = join(paths.libraryRoot, "CategoryA");
+    const categoryB = join(paths.libraryRoot, "CategoryB");
+    await Promise.all([
+      writeFile(join(categoryA, "clip.bk2"), "bk2"),
+      writeFile(join(categoryA, "clip.mp4"), "playback"),
+    ]);
+
+    // When: it is moved to another category.
+    const result = await moveLibraryItem(
+      {
+        libraryRoot: paths.libraryRoot,
+        kind: "patch",
+        sourceRelativePath: "CategoryA\\clip.bk2",
+        targetDirectoryRelativePath: "CategoryB",
+      },
+      { groups },
+    );
+
+    // Then: the hover MP4 travels with it.
+    expect(result).toEqual({ ok: true, value: { relativePath: "CategoryB\\clip.bk2" } });
+    await expect(readFile(join(categoryB, "clip.mp4"), "utf8")).resolves.toBe("playback");
+    await expect(access(join(categoryA, "clip.mp4"))).rejects.toMatchObject({ code: "ENOENT" });
+  });
 });

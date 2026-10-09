@@ -1,6 +1,7 @@
 import type { AppearanceBundleDto } from "../../src/shared/appearance-contracts";
 import type { DnfApi } from "../../src/shared/ipc-contracts";
 import type { CategorySnapshot } from "../../src/shared/library-dto";
+import type { LibraryChangedEvent } from "../../src/shared/library-events";
 import type { UpdateEvent } from "../../src/shared/update-contracts";
 
 const appearanceState = {
@@ -31,6 +32,7 @@ export function createFakeApi(snapshot: CategorySnapshot): DnfApi {
   const emitUpdate = (event: UpdateEvent): void => {
     for (const listener of updateListeners) listener(event);
   };
+  const libraryChangeListeners = new Set<(event: LibraryChangedEvent) => void>();
   const explicitGroupMembers = new Map<string, readonly string[]>([
     [PRESET_ID, ["coat.npk", "sword.npk"]],
   ]);
@@ -84,6 +86,12 @@ export function createFakeApi(snapshot: CategorySnapshot): DnfApi {
           updateListeners.delete(listener);
         };
       },
+    },
+    subscribeLibraryChanges: (listener) => {
+      libraryChangeListeners.add(listener);
+      return () => {
+        libraryChangeListeners.delete(listener);
+      };
     },
     scan: async () => ({ ok: true, value: snapshot }),
     scanGroup: async ({ groupId }) => {

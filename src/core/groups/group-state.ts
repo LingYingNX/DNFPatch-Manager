@@ -1,7 +1,8 @@
 import { win32 } from "node:path";
 import { z } from "zod";
+import { isLibraryPatchPath } from "../../shared/library-patch-extensions";
 import { LibraryItemNameSchema } from "../library/library-item-name";
-import { isNpkPath, parentRelativePath } from "../paths/relative-path";
+import { parentRelativePath } from "../paths/relative-path";
 import {
   type AtomicJsonStore,
   createAtomicJsonStore,
@@ -48,10 +49,10 @@ export const VirtualGroupSchema = z
         });
         continue;
       }
-      if (!isNpkPath(memberRelativePath)) {
+      if (!isLibraryPatchPath(memberRelativePath)) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "A group member must be an NPK file.",
+          message: "A group member must be an NPK or BK2 file.",
         });
       }
       if (
