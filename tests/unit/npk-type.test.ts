@@ -75,6 +75,14 @@ describe("classifyNpk", () => {
     });
   });
 
+  it("classifies an ogg outside the sounds directory as sound", async () => {
+    await withTempDir(async (dir) => {
+      const file = join(dir, "music.npk");
+      await writeFile(file, buildNpk(["music/bgm/theme.ogg"]));
+      expect(await classifyNpk(file)).toBe("sound");
+    });
+  });
+
   it("falls back to image when the flag is not NPK and the head is not OggS", async () => {
     await withTempDir(async (dir) => {
       const file = join(dir, "broken.npk");
@@ -91,7 +99,16 @@ describe("classifyNpk", () => {
     });
   });
 
-  it("falls back to image when the entry count exceeds the index byte cap", async () => {
+  it("classifies a large-index NPK whose sound entry sits beyond the first read chunk", async () => {
+    await withTempDir(async (dir) => {
+      const file = join(dir, "large-index.npk");
+      const imageEntries = Array.from({ length: 300 }, (_value, index) => `sprite/a${index}.img`);
+      await writeFile(file, buildNpk([...imageEntries, "sounds/bgm/xxx.ogg"]));
+      expect(await classifyNpk(file)).toBe("sound");
+    });
+  });
+
+  it("falls back to image when the declared entry count is absurd", async () => {
     await withTempDir(async (dir) => {
       const file = join(dir, "huge-count.npk");
       const header = Buffer.alloc(20);

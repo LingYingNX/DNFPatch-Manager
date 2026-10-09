@@ -268,6 +268,28 @@ describe("install service", () => {
     ]);
   });
 
+  it("routes a sound NPK whose index is far larger than one read chunk", async () => {
+    // Given: a sound patch with 12820 entries (3.38 MB index), mirroring a real voice pack.
+    const { paths, gameRoot } = await createInstallFixture();
+    const imageDir = join(gameRoot, "ImagePacks2");
+    const soundDir = join(gameRoot, "SoundPacks");
+    await Promise.all([mkdir(imageDir), mkdir(soundDir)]);
+    const entryPaths = Array.from(
+      { length: 12820 },
+      (_value, index) => `sounds/mon/apocalypse/vo/bliss_vo_atk_${index}.ogg`,
+    );
+    await writeFile(join(paths.libraryRoot, "voice.npk"), buildNpkBytes(entryPaths));
+    const service = createInstallService({ ...paths, gameRoot });
+
+    // When: the patch is enabled.
+    const result = await service.enable({ kind: "patch", relativePath: "voice.npk" });
+
+    // Then: it lands in SoundPacks instead of falling back to ImagePacks2.
+    expect(result).toEqual({ ok: true, value: { installedCount: 1 } });
+    expect(await readdir(soundDir)).toEqual(["voice.npk"]);
+    expect(await readdir(imageDir)).toEqual([]);
+  });
+
   it("disables a routed sound patch inside SoundPacks and a legacy root record", async () => {
     // Given: one sound patch installed through routing and one legacy root-level record.
     const { paths, gameRoot } = await createInstallFixture();
