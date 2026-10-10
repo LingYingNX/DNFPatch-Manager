@@ -28,7 +28,15 @@ function git(args: readonly string[], cwd: string): void {
 }
 
 function runHarness(args: readonly string[], cwd: string) {
-  return spawnSync("bash", [harness, ...args], { cwd, encoding: "utf8", shell: false });
+  const result = spawnSync("bash", [harness, ...args], { cwd, encoding: "utf8", shell: false });
+  if (result.error?.code === "ENOENT") {
+    // bash 不在 PATH（Windows 常见）时给出明确根因，而不是让断言
+    // 在 undefined 上抛出误导性的 AssertionError（ERR-20260924-001）。
+    throw new Error(
+      "bash not found on PATH. On Windows add C:\\Program Files\\Git\\bin to PATH before running this test (ERR-20260924-001).",
+    );
+  }
+  return result;
 }
 
 /** 建一个最小 git 仓库：harness 需要 AGENTS.md、docs/ARCHITECTURE.md 等结构。 */
