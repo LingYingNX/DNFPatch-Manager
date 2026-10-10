@@ -32,7 +32,7 @@ const temporaryDirectories: string[] = [];
 
 /**
  * 假执行器：把产物写到该次调用请求的输出文件。
- * 输出总是最后一个 `.jpg` / `.mp4` 参数（前面的可能是输入文件），因此从尾部找。
+ * 输出总是最后一个 `.jpg` / `.mp4` / `.avi` 参数（前面的可能是输入文件），因此从尾部找。
  */
 function writeRequestedArtifact(
   invocations: ConverterInvocation[],
@@ -42,7 +42,7 @@ function writeRequestedArtifact(
     let target: string | undefined;
     for (let index = invocation.args.length - 1; index >= 0; index -= 1) {
       const arg = invocation.args[index];
-      if (arg !== undefined && /\.(?:jpg|mp4)$/iu.test(arg)) {
+      if (arg !== undefined && /\.(?:jpg|mp4|avi)$/iu.test(arg)) {
         target = arg;
         break;
       }
@@ -264,6 +264,8 @@ describe("generateVideoPreview", () => {
     expect(cover?.args).toContain("/E32");
     // 封面保持源分辨率，不带缩放开关。
     expect(cover?.args.some((arg) => arg.startsWith("/("))).toBe(false);
+    // 封面同样要预乘导出，否则透明区会留成解码器的 127 灰。
+    expect(cover?.args).toContain("/Z12000");
     await expect(readFile(win32.join(category, "0A 冰雪女剑buff.jpg"), "utf8")).resolves.toBe(
       "artifact",
     );
@@ -292,7 +294,74 @@ describe("generateVideoPreview", () => {
       coverRelativePath: "88\\clip.jpg",
       playbackRelativePath: "88\\clip.mp4",
     });
-    // 播放素材用 nvenc，封面用 radvideo64，全程不需要 ffmpeg。
+    // 播放素材走 BinkConv /Z2000 导出预乘 AVI 再让 ffmpeg 压成 MP4（这样透明区才是纯黑），
+    // 封面走 radvideo64 抽帧，nvenc 全程用不上。
+    expect(invocations.map((invocation) => win32.basename(invocation.executable))).toEqual([
+      "radvideo64.exe",
+      "ffmpeg.exe",
+      "radvideo64.exe",
+    ]);
+  });
+
+  it("flattens the transparent area to black via /Z12000 instead of leaving decoder grey", async () => {
+    const { libraryRoot, category } = await createLibrary();
+    await writeFile(
+      win32.join(category, "clip.bk2"),
+      buildBk2Bytes({ frameCount: 10, width: 320, height: 240, frameRate: 30 }),
+    );
+
+    const invocations: ConverterInvocation[] = [];
+    await generateVideoPreview({
+      libraryRoot,
+      relativePath: "88\\clip.bk2",
+      tools: {
+        nvenc: "C:\\tools\\bink2nvenc.exe",
+        radVideo: "C:\\RAD Gametools\\radvideo64.exe",
+        ffmpeg: "C:\\ffmpeg.exe",
+      },
+      runner: writeRequestedArtifact(invocations),
+    });
+
+    // /Z12000 = 处理 alpha（1000）+ 预乘（2000）+ 抑制不支持 alpha 的警告（10000），
+    // 透明像素的 RGB 被清成 0，丢掉 alpha 后即纯黑。
+    const exportCall = invocations[0];
+    expect(exportCall?.args).toContain("BinkConv");
+    expect(exportCall?.args).toContain("/Z12000");
+    // binkConverterArgs 会把 `BinkConv` 前置，因此 args[1] 是输入、args[2] 才是输出。
+    const exportTarget = exportCall?.args[2] ?? "";
+    expect(win32.extname(exportTarget)).toBe(".avi");
+    // 中间 AVI 必须独占一个目录，否则 spawnConverter 会取错首个产物。
+    expect(win32.basename(win32.dirname(exportTarget))).toBe("playback-avi");
+
+    const transcode = invocations[1];
+    expect(win32.basename(transcode?.executable ?? "")).toBe("ffmpeg.exe");
+    expect(transcode?.args).toContain("-pix_fmt");
+    expect(transcode?.args).toContain("yuv420p");
+    expect(transcode?.args[transcode.args.indexOf("-i") + 1]).toBe(exportTarget);
+    expect(win32.basename(transcode?.args.at(-1) ?? "")).toBe("playback.mp4");
+  });
+
+  it("skips the AVI round trip when the uncompressed intermediate would be too large", async () => {
+    const { libraryRoot, category } = await createLibrary();
+    await writeFile(
+      win32.join(category, "clip.bk2"),
+      // 16000×16000×4×255 超过 1.5 GB 的中间 AVI 上限。
+      buildBk2Bytes({ frameCount: 255, width: 16000, height: 16000, frameRate: 30 }),
+    );
+
+    const invocations: ConverterInvocation[] = [];
+    const result = await generateVideoPreview({
+      libraryRoot,
+      relativePath: "88\\clip.bk2",
+      tools: {
+        nvenc: "C:\\tools\\bink2nvenc.exe",
+        radVideo: "C:\\RAD Gametools\\radvideo64.exe",
+        ffmpeg: "C:\\ffmpeg.exe",
+      },
+      runner: writeRequestedArtifact(invocations),
+    });
+
+    expect(result.playbackRelativePath).toBe("88\\clip.mp4");
     expect(invocations.map((invocation) => win32.basename(invocation.executable))).toEqual([
       "bink2nvenc.exe",
       "radvideo64.exe",

@@ -311,6 +311,105 @@ function resolveWorkspaceRoot(): string {
   return isAsciiOnly(fallback) ? fallback : preferred;
 }
 
+type PlaybackEncodeRequest = {
+  /** ASCII 工作目录里的 `input.bk2`。 */
+  readonly inputPath: string;
+  readonly outputPath: string;
+  readonly outputDirectory: string;
+  readonly frameRate: number;
+  /** 预乘中间 AVI 的体积预估（字节）；无法读取头时为 0。 */
+  readonly estimatedBytes: number;
+  readonly tools: VideoPreviewTools;
+  readonly run: ConverterRunner;
+  readonly workspace: string;
+};
+
+/**
+ * 导出播放素材 MP4，返回产物路径。
+ *
+ * BK2 的透明区域是 alpha=0 的像素，而 MP4 没有 alpha 通道：解码器丢掉 alpha 后，这些
+ * 像素留下的是解码端填充的 127 灰，预览背景因此呈灰黑混杂（`ImagePacks2` 侧看不出来，
+ * 只有透明视频会暴露）。`BinkConv` 的 `/Z2000` 按预乘导出，透明像素的 RGB 已被清成 0，
+ * 再编成 H.264 就得到纯黑背景，所以优先走这条路。
+ *
+ * 中间 AVI 是未压缩 BGRA，体积随分辨率与帧数线性膨胀（970×668×63 帧约 163 MB）。预估
+ * 超过 `AVI_BYTES_LIMIT` 时退回 NVENC 单步编码：预览少一层黑底，好过撑爆临时目录。
+ */
+async function encodePlayback(request: PlaybackEncodeRequest): Promise<string | null> {
+  const { tools } = request;
+  const canFlattenToBlack =
+    tools.radVideo !== null && tools.ffmpeg !== null && request.estimatedBytes <= AVI_BYTES_LIMIT;
+
+  if (canFlattenToBlack && tools.radVideo !== null && tools.ffmpeg !== null) {
+    const aviDirectory = win32.join(request.workspace, "playback-avi");
+    await mkdir(aviDirectory, { recursive: true });
+    // 中间 AVI 单独占一个目录：`spawnConverter` 取目录里的首个产物，混放会取错文件。
+    const exported = await request.run({
+      executable: tools.radVideo,
+      args: binkConverterArgs(tools.radVideo, [
+        request.inputPath,
+        win32.join(aviDirectory, "playback.avi"),
+        "/O",
+        ALPHA_PREMULTIPLIED_SWITCH,
+      ]),
+      outputDirectory: aviDirectory,
+      timeoutMs: PLAYBACK_TIMEOUT_MS,
+      stableMs: BINK_STABLE_MS,
+    });
+    if (exported !== null) {
+      const transcoded = await request.run({
+        executable: tools.ffmpeg,
+        args: [
+          "-v",
+          "error",
+          "-y",
+          "-i",
+          exported,
+          "-c:v",
+          "libx264",
+          "-preset",
+          X264_PRESET,
+          "-crf",
+          X264_CRF,
+          "-pix_fmt",
+          "yuv420p",
+          "-movflags",
+          "+faststart",
+          "-an",
+          request.outputPath,
+        ],
+        outputDirectory: request.outputDirectory,
+        timeoutMs: PLAYBACK_TIMEOUT_MS,
+        stableMs: FFMPEG_STABLE_MS,
+      });
+      if (transcoded !== null) return transcoded;
+    }
+  }
+
+  if (tools.nvenc === null) return null;
+  // nvenc 的输入与输出路径都必须是纯 ASCII。
+  return request.run({
+    executable: tools.nvenc,
+    args: [
+      request.inputPath,
+      request.outputPath,
+      "--preset",
+      PLAYBACK_PRESET,
+      "--codec",
+      PLAYBACK_CODEC,
+      "--depth",
+      "8",
+      "--fps",
+      request.frameRate.toString(),
+      "--cq",
+      PLAYBACK_CQ,
+    ],
+    outputDirectory: request.outputDirectory,
+    timeoutMs: PLAYBACK_TIMEOUT_MS,
+    stableMs: FFMPEG_STABLE_MS,
+  });
+}
+
 export type VideoPreviewGenerationRequest = {
   readonly libraryRoot: LibraryRoot;
   /** 相对库根目录的 BK2 路径。 */
@@ -328,13 +427,33 @@ export type VideoPreviewGenerationResult = {
 };
 
 /**
- * 播放素材按最高质量档导出：NVENC 最慢预设 + 最低 CQ，并**保持源分辨率不缩放**。
+ * NVENC 回退档按最高质量档导出：最慢预设 + 最低 CQ，并**保持源分辨率不缩放**。
  * 早期实现把视频缩到 240 宽再编码，正是预览「太模糊」的根因。
  */
 const PLAYBACK_PRESET = "p7";
 const PLAYBACK_CQ = "1";
 const PLAYBACK_CODEC = "h264";
 const PLAYBACK_TIMEOUT_MS = 120_000;
+
+/**
+ * `BinkConv` 的 `Graphics processing options` 把 alpha 处理加在 `/Z` 的数值上：1000 是
+ * 「处理 alpha 平面」，2000 是「按预乘处理」，10000 是「抑制缺少 alpha 平面的警告」。
+ * 预乘导出会把透明像素的 RGB 一并清成 0，编码器丢掉 alpha 通道后背景就落在纯黑上。
+ *
+ * 必须带上 10000：JPG 之类的导出器不支持 alpha，只给 2000 时 BinkConv 会弹出「是否取消
+ * 转换」并**放弃产物**；10000 让它改为静默关掉 alpha 继续导出，预乘结果才落得到画面上。
+ */
+const ALPHA_PREMULTIPLIED_SWITCH = "/Z12000";
+
+/**
+ * `BinkConv` 导出的中间 AVI 是未压缩 BGRA，单帧 `width * height * 4` 字节。体积预估
+ * 超过这个上限时改用 NVENC 单步编码：预览少一层黑底，好过撑爆临时目录。
+ */
+const AVI_BYTES_LIMIT = 1_500_000_000;
+
+/** 中间 AVI 转 H.264 的质量档，与 NVENC 侧的「最慢预设 + 最低 CQ」对齐。 */
+const X264_PRESET = "slow";
+const X264_CRF = "18";
 
 const BINK_STABLE_MS = 1500;
 const COVER_TIMEOUT_MS = 60_000;
@@ -378,31 +497,21 @@ export async function generateVideoPreview(
     const asciiInput = win32.join(workspace, "input.bk2");
     await copyFile(sourcePath, asciiInput);
 
-    // 1) 播放素材：全分辨率 H.264（NVENC），最高质量档。
-    if (tools.nvenc !== null) {
+    // 1) 播放素材：全分辨率 H.264。优先 `BinkConv /Z2000` + ffmpeg 压黑底，NVENC 兜底。
+    if (tools.nvenc !== null || (tools.radVideo !== null && tools.ffmpeg !== null)) {
       const encodeDirectory = win32.join(workspace, "encode");
       await mkdir(encodeDirectory, { recursive: true });
-      // nvenc 的输入与输出路径都必须是纯 ASCII，因此临时产物用固定英文名，
+      // 转换器的输入与输出路径都必须是纯 ASCII，因此临时产物用固定英文名，
       // 搬回补丁库时才改成与 BK2 同名的 `<base>.mp4`。
-      const encoded = await runConverter({
-        executable: tools.nvenc,
-        args: [
-          asciiInput,
-          win32.join(encodeDirectory, "playback.mp4"),
-          "--preset",
-          PLAYBACK_PRESET,
-          "--codec",
-          PLAYBACK_CODEC,
-          "--depth",
-          "8",
-          "--fps",
-          (header?.frameRate ?? 60).toString(),
-          "--cq",
-          PLAYBACK_CQ,
-        ],
+      const encoded = await encodePlayback({
+        inputPath: asciiInput,
+        outputPath: win32.join(encodeDirectory, "playback.mp4"),
         outputDirectory: encodeDirectory,
-        timeoutMs: PLAYBACK_TIMEOUT_MS,
-        stableMs: FFMPEG_STABLE_MS,
+        frameRate: header?.frameRate ?? 60,
+        estimatedBytes: header === null ? 0 : header.width * header.height * 4 * header.frameCount,
+        tools,
+        run: runConverter,
+        workspace,
       });
       if (encoded !== null) {
         const target = resolveLibraryPath(request.libraryRoot, win32.join(directory, playbackName));
@@ -424,6 +533,7 @@ export async function generateVideoPreview(
           `/S${middleFrame.toString()}`,
           `/E${middleFrame.toString()}`,
           "/O",
+          ALPHA_PREMULTIPLIED_SWITCH,
         ]),
         outputDirectory: coverDirectory,
         timeoutMs: COVER_TIMEOUT_MS,
