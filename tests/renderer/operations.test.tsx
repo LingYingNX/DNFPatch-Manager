@@ -236,6 +236,23 @@ describe("workspace operations", () => {
     ).toEqual(["分类A"]);
   });
 
+  it("collapses the expanded move submenu when hovering a leaf sibling item", async () => {
+    render(<App api={createFakeApi(WORKSPACE_SNAPSHOT)} />);
+    await screen.findByText("coat.npk");
+    fireEvent.contextMenu(itemButton("coat.npk"));
+
+    const menu = screen.getByRole("menu");
+    const moveSubmenu = menu.querySelector(".item-context-submenu");
+    expect(moveSubmenu).not.toBeNull();
+    if (moveSubmenu === null) return;
+    fireEvent.mouseEnter(moveSubmenu);
+    expect(moveSubmenu.querySelector(".item-context-submenu-panel")).not.toBeNull();
+
+    fireEvent.mouseEnter(within(menu).getByRole("menuitem", { name: "源文件" }));
+
+    expect(menu.querySelector(".item-context-submenu-panel")).toBeNull();
+  });
+
   it("includes nested categories in the move submenu", async () => {
     render(<App api={createFakeApi(NESTED_WORKSPACE_SNAPSHOT)} />);
     await screen.findByText("coat.npk");

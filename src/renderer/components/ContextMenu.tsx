@@ -89,6 +89,13 @@ function MenuList({
     hidePill();
   };
 
+  // 叶子项没有自己的子面板，进入它就表示这一层是终点：
+  // 必须把比当前层更深的子面板收起，否则旧的三级子面板会一直残留。
+  const enterLeafItem = (target: HTMLElement, danger: boolean): void => {
+    setOpenPath(path);
+    movePill(target, danger);
+  };
+
   return (
     <div className="item-context-menu-list list" ref={listRef}>
       <div aria-hidden="true" className="item-context-menu-pill" ref={pillRef} />
@@ -158,9 +165,11 @@ function MenuList({
                 data-danger={action.kind === "delete" ? "true" : undefined}
                 disabled={disabled || action.disabled}
                 onClick={runAction}
-                onFocus={(event) => movePill(event.currentTarget, action.kind === "delete")}
+                onFocus={(event) => enterLeafItem(event.currentTarget, action.kind === "delete")}
                 onBlur={hidePillIfLeavingList}
-                onMouseEnter={(event) => movePill(event.currentTarget, action.kind === "delete")}
+                onMouseEnter={(event) =>
+                  enterLeafItem(event.currentTarget, action.kind === "delete")
+                }
                 onMouseLeave={hidePillIfLeavingList}
                 onPointerDown={runPointerAction}
                 role="menuitem"
