@@ -239,9 +239,15 @@ export function CategorySidebar({
 
   useEffect(() => {
     if (client === undefined) return;
+    // 卸载或切换 client 后丢弃在途结果，避免旧结果覆盖新 client 的分类样式。
+    let active = true;
     void client.getCategoryStyles().then((result) => {
-      if (result.ok) setStyleState(result.value);
+      if (!active || !result.ok) return;
+      setStyleState(result.value);
     });
+    return () => {
+      active = false;
+    };
   }, [client]);
 
   useEffect(

@@ -2,7 +2,9 @@
   position: relative;
 }
 
-.selection-box {
+/* 补丁工作区与回收站共用同一套框选视觉。 */
+.selection-box,
+.recycle-selection-box {
   position: fixed;
   z-index: 20;
   border: 1px solid var(--color-primary-hover);
@@ -191,14 +193,6 @@
 .recycle-list small {
   color: var(--color-text-secondary);
   font-size: 11px;
-}
-
-.recycle-selection-box {
-  position: fixed;
-  z-index: 20;
-  border: 1px solid var(--color-primary-hover);
-  background: rgba(91, 107, 255, 0.16);
-  pointer-events: none;
 }
 
 .dialog-confirm-label {

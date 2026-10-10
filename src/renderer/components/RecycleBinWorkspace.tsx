@@ -77,16 +77,29 @@ export function RecycleBinWorkspace({
       .flatMap((element) =>
         element.dataset["recycleId"] === undefined ? [] : [element.dataset["recycleId"]],
       );
-    setSelectedIds(entryIds.filter((id) => paths.includes(id)));
-    setAnchorId(null);
+    const nextIds = entryIds.filter((id) => paths.includes(id));
+    setSelectedIds(nextIds);
+    // 与 useItemSelection.selectBox 对齐：锚点落在选中范围的最后一项，
+    // 否则框选后再 Shift+点击会因 anchorId 为空退化成单选。
+    setAnchorId(nextIds.at(-1) ?? null);
+  };
+
+  const deleteEntries = async (entries: readonly RecycleEntryDto[]): Promise<void> => {
+    setSubmitting(true);
+    try {
+      await operations.deleteRecycleItems(entries);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const deleteSelected = async (): Promise<void> => {
-    setSubmitting(true);
-    await operations.deleteRecycleItems(
-      recycleEntries.filter((entry) => selectedIds.includes(entry.id)),
-    );
-    setSubmitting(false);
+    await deleteEntries(recycleEntries.filter((entry) => selectedIds.includes(entry.id)));
+  };
+
+  const clearAll = async (): Promise<void> => {
+    setSelectedIds(recycleEntries.map((entry) => entry.id));
+    await deleteEntries(recycleEntries);
   };
 
   return (
@@ -96,10 +109,7 @@ export function RecycleBinWorkspace({
           <CommandButton
             disabled={submitting || recycleEntries.length === 0}
             icon={<Trash2 size={15} />}
-            onClick={() => {
-              setSelectedIds(recycleEntries.map((entry) => entry.id));
-              void operations.deleteRecycleItems(recycleEntries);
-            }}
+            onClick={() => void clearAll()}
             variant="danger"
           >
             清空回收站
@@ -115,7 +125,8 @@ export function RecycleBinWorkspace({
           <p>删除的补丁和组会先移入这里。</p>
         </section>
       ) : (
-        <div
+        <section
+          aria-label="回收站内容"
           className="recycle-bin-list"
           tabIndex={-1}
           onPointerDown={(event) => {
@@ -139,7 +150,6 @@ export function RecycleBinWorkspace({
             event.preventDefault();
             void deleteSelected();
           }}
-          role="application"
         >
           <ul className="recycle-list">
             {recycleEntries.map((entry) => {
@@ -185,7 +195,7 @@ export function RecycleBinWorkspace({
                     className="recycle-row-delete"
                     onClick={(event) => {
                       event.stopPropagation();
-                      void operations.deleteRecycleItems([entry]);
+                      void deleteEntries([entry]);
                     }}
                     variant="ghost"
                   >
@@ -207,26 +217,24 @@ export function RecycleBinWorkspace({
               }}
             />
           )}
-        </div>
+        </section>
       )}
-      <ContextMenu
-        actions={
-          contextMenu === null
-            ? []
-            : [
-                {
-                  icon: <Trash2 size={16} />,
-                  kind: "delete" as const,
-                  label: "删除",
-                  onClick: () => void operations.deleteRecycleItems(contextMenu.entries),
-                },
-              ]
-        }
-        disabled={submitting}
-        onClose={() => setContextMenu(null)}
-        x={contextMenu?.x ?? 0}
-        y={contextMenu?.y ?? 0}
-      />
+      {contextMenu === null ? null : (
+        <ContextMenu
+          actions={[
+            {
+              icon: <Trash2 size={16} />,
+              kind: "delete" as const,
+              label: "删除",
+              onClick: () => void deleteEntries(contextMenu.entries),
+            },
+          ]}
+          disabled={submitting}
+          onClose={() => setContextMenu(null)}
+          x={contextMenu.x}
+          y={contextMenu.y}
+        />
+      )}
     </main>
   );
 }

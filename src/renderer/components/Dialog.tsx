@@ -26,6 +26,10 @@ export function Dialog({
 }: DialogProps): React.JSX.Element {
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
+  // 调用方普遍传内联箭头函数，若把它写进依赖数组会导致每次父渲染都重装
+  // 监听并重跑初始聚焦，把用户正在输入的焦点打回首个可聚焦元素。
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     const previouslyFocused = document.activeElement;
@@ -34,7 +38,7 @@ export function Dialog({
     const handleKeyDown = (event: KeyboardEvent): void => {
       if (event.key === "Escape") {
         event.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (event.key !== "Tab") {
@@ -69,7 +73,7 @@ export function Dialog({
         document.querySelector<HTMLElement>(".patch-workspace")?.focus();
       });
     };
-  }, [onClose]);
+  }, []);
 
   return (
     <div className={`dialog-backdrop ${backdropClassName}`.trim()}>

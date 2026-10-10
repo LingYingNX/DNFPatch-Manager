@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { DnfApi } from "../../shared/ipc-contracts";
 import type { CategorySnapshot, ChildCategory } from "../../shared/library-dto";
 import type { NavigationSelection, ViewMode } from "../workspace/model";
@@ -93,13 +93,30 @@ export function WorkspaceApp({ client }: WorkspaceAppProps): React.JSX.Element {
   const recovery = useRecoveryState(client);
   const [noticeLeaving, setNoticeLeaving] = useState(false);
 
+  const leavingTimerRef = useRef<number | null>(null);
+
   const dismissNotice = useCallback((): void => {
     setNoticeLeaving(true);
     gameDirectory.showNotice(null);
     workspace.showNotice(null);
-    // 等 CSS 淡出过渡播完再卸载元素。
-    window.setTimeout(() => setNoticeLeaving(false), 320);
+    // 等 CSS 淡出过渡播完再卸载元素；重复触发时重置计时，卸载时统一清理。
+    if (leavingTimerRef.current !== null) {
+      window.clearTimeout(leavingTimerRef.current);
+    }
+    leavingTimerRef.current = window.setTimeout(() => {
+      leavingTimerRef.current = null;
+      setNoticeLeaving(false);
+    }, 320);
   }, [gameDirectory.showNotice, workspace.showNotice]);
+
+  useEffect(
+    () => () => {
+      if (leavingTimerRef.current !== null) {
+        window.clearTimeout(leavingTimerRef.current);
+      }
+    },
+    [],
+  );
 
   // 提示条 5 秒后带淡出动画消失；notice 变化（含手动关闭）都会重置计时。
   useEffect(() => {

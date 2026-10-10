@@ -84,10 +84,16 @@ export function useAppearance(
 
   useEffect(() => {
     if (client === undefined) return;
+    // 卸载或切换 client 后丢弃在途结果，避免旧结果覆盖新 client 的外观。
+    let active = true;
     void client.getAppearance().then((result) => {
+      if (!active) return;
       if (result.ok) applyBundle(result.value);
       else showNotice({ tone: "error", message: result.error.message });
     });
+    return () => {
+      active = false;
+    };
   }, [applyBundle, client, showNotice]);
 
   const update = async (next: AppearanceSettingsDto): Promise<void> => {

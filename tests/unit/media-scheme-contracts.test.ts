@@ -51,4 +51,12 @@ describe("renderer media loading contracts", () => {
     expect(LIBRARY_SCHEME_PRIVILEGES.standard).toBe(true);
     expect(LIBRARY_SCHEME_PRIVILEGES.supportFetchAPI).toBe(true);
   });
+
+  it("declares the hardening directives explicitly instead of relying on default-src", async () => {
+    const policy = await readContentSecurityPolicy();
+    expect(directive(policy, "font-src")).toBe("font-src 'self'");
+    expect(directive(policy, "object-src")).toBe("object-src 'none'");
+    expect(directive(policy, "base-uri")).toBe("base-uri 'self'");
+    expect(directive(policy, "frame-ancestors")).toBe("frame-ancestors 'none'");
+  });
 });

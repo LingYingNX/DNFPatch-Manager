@@ -8,6 +8,8 @@ export type ContextMenuAction = {
   readonly children?: readonly ContextMenuAction[];
   readonly disabled?: boolean;
   readonly icon: React.ReactNode;
+  /** 显式稳定标识；缺省退回 label，此时要求同一层内 label 唯一。 */
+  readonly id?: string;
   readonly kind?: "delete";
   readonly label: string;
   readonly onClick: () => void;
@@ -48,6 +50,34 @@ function ariaShortcut(shortcut: string | undefined): string | undefined {
   if (shortcut === "Ctrl+") return "Control+";
   if (shortcut.startsWith("Ctrl+")) return `Control+${shortcut.slice("Ctrl+".length)}`;
   return shortcut === "Del" ? "Delete" : shortcut;
+}
+
+/**
+ * 子面板默认向右展开；窗口右缘放不下时改向左展开，
+ * 否则深层子菜单会被裁到窗口外（根菜单的收边逻辑在 ContextMenu 里）。
+ */
+function SubmenuPanel({ children }: { readonly children: React.ReactNode }): React.JSX.Element {
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const [flipped, setFlipped] = useState(false);
+
+  useLayoutEffect(() => {
+    const node = panelRef.current;
+    if (node === null) return;
+    const { width, right } = node.getBoundingClientRect();
+    if (width === 0) return;
+    setFlipped(right + VIEWPORT_MARGIN > window.innerWidth);
+  }, []);
+
+  return (
+    <div
+      className="item-context-submenu-panel card"
+      data-flip={flipped ? "left" : undefined}
+      ref={panelRef}
+      role="menu"
+    >
+      {children}
+    </div>
+  );
 }
 
 function MenuList({
@@ -115,7 +145,8 @@ function MenuList({
         };
 
         return (
-          <Fragment key={action.label}>
+          // key 优先用显式 id；没有 id 时退回 label，此时同一层内 label 必须唯一。
+          <Fragment key={action.id ?? action.label}>
             {action.separatorBefore ? (
               <div aria-hidden="true" className="item-context-menu-separator" />
             ) : null}
@@ -146,7 +177,7 @@ function MenuList({
                   <ChevronRight className="item-context-menu-chevron" size={14} />
                 </button>
                 {expanded ? (
-                  <div className="item-context-submenu-panel card" role="menu">
+                  <SubmenuPanel>
                     <MenuList
                       actions={children}
                       disabled={disabled}
@@ -155,7 +186,7 @@ function MenuList({
                       path={actionPath}
                       setOpenPath={setOpenPath}
                     />
-                  </div>
+                  </SubmenuPanel>
                 ) : null}
               </fieldset>
             ) : (
@@ -210,6 +241,9 @@ export function ContextMenu({
   const openMenuPath = (path: readonly number[]): void => {
     setOpenPath((current) => (pathsEqual(current, path) ? current : path));
   };
+  // 调用方传内联箭头函数，依赖 [onClose] 会导致每次父渲染重装三个 document 监听。
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   // 菜单固定定位在光标处，滚动无法把它带回视口；向下放不下时改为向上展开，
   // 向右放不下时向左收边，避免贴着窗口下缘/右缘右键时菜单被裁掉。
@@ -241,16 +275,16 @@ export function ContextMenu({
       if (event.target instanceof Node && menuRef.current?.contains(event.target)) {
         return;
       }
-      onClose();
+      onCloseRef.current();
     };
     // 菜单不随内容滚动（fixed 定位），滚动后继续悬浮只会与卡片错位，直接关闭。
     const closeOnScroll = (): void => {
-      onClose();
+      onCloseRef.current();
     };
     const closeOnEscape = (event: KeyboardEvent): void => {
       if (event.key === "Escape") {
         event.preventDefault();
-        onClose();
+        onCloseRef.current();
       }
     };
     document.addEventListener("pointerdown", closeOnPointerDown);
@@ -261,7 +295,7 @@ export function ContextMenu({
       document.removeEventListener("scroll", closeOnScroll, { capture: true });
       document.removeEventListener("keydown", closeOnEscape);
     };
-  }, [onClose]);
+  }, []);
 
   return (
     <div

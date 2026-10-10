@@ -29,7 +29,9 @@ function git(args: readonly string[], cwd: string): void {
 
 function runHarness(args: readonly string[], cwd: string) {
   const result = spawnSync("bash", [harness, ...args], { cwd, encoding: "utf8", shell: false });
-  if (result.error?.code === "ENOENT") {
+  // spawnSync 把 error 声明成 Error，但 ENOENT 这类失败实际带 code（ErrnoException）。
+  // 用 "code" in 收窄而不用类型断言，运行时语义不变。
+  if (result.error !== undefined && "code" in result.error && result.error.code === "ENOENT") {
     // bash 不在 PATH（Windows 常见）时给出明确根因，而不是让断言
     // 在 undefined 上抛出误导性的 AssertionError（ERR-20260924-001）。
     throw new Error(

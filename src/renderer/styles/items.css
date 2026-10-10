@@ -356,6 +356,13 @@
     transform 120ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* 右侧放不下时改向左展开，避免深层子菜单被窗口右缘裁掉。 */
+.item-context-submenu-panel.card[data-flip="left"] {
+  right: calc(100% + 4px);
+  left: auto;
+  transform-origin: right center;
+}
+
 @starting-style {
   .item-context-submenu-panel.card {
     opacity: 0;

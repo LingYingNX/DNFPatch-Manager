@@ -107,6 +107,8 @@ function moveTargetActions(
       ? {}
       : { children: moveTargetActions(target.children, selectedItems, onMoveTo) }),
     icon: <FolderInput size={15} />,
+    // 分类目录名在同一父级下唯一，但显式 id 让菜单 key 不依赖这条约束。
+    id: target.relativePath,
     label: target.label,
     onClick: () => onMoveTo(target.relativePath, selectedItems.map(workspaceItemReference)),
   }));
