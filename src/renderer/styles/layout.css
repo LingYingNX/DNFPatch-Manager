@@ -30,9 +30,9 @@
   border-radius: var(--radius-pill);
   background: linear-gradient(
     180deg,
-    rgb(244 63 94 / calc(15% + 85% * var(--sidebar-scrollbar-activation))),
-    rgb(236 72 153 / calc(17% + 83% * var(--sidebar-scrollbar-activation))),
-    rgb(139 92 246 / calc(20% + 80% * var(--sidebar-scrollbar-activation)))
+    rgb(var(--scrollbar-thumb-start-rgb) / calc(15% + 85% * var(--sidebar-scrollbar-activation))),
+    rgb(var(--scrollbar-thumb-mid-rgb) / calc(17% + 83% * var(--sidebar-scrollbar-activation))),
+    rgb(var(--scrollbar-thumb-end-rgb) / calc(20% + 80% * var(--sidebar-scrollbar-activation)))
   );
   transition: background 220ms var(--easing-standard);
 }
@@ -42,7 +42,12 @@
 }
 
 .category-sidebar[data-scrollbar-active="true"]::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #f43f5e, #ec4899, #8b5cf6);
+  background: linear-gradient(
+    180deg,
+    rgb(var(--scrollbar-thumb-start-rgb)),
+    rgb(var(--scrollbar-thumb-mid-rgb)),
+    rgb(var(--scrollbar-thumb-end-rgb))
+  );
 }
 
 .sidebar-resize-handle {
@@ -414,7 +419,7 @@
 .category-tree .category-row {
   position: relative;
   z-index: 1;
-  height: 32px;
+  height: var(--category-row-height);
   gap: 7px;
   padding: 0 8px;
   border-radius: 6px;
@@ -540,17 +545,19 @@
   z-index: 1;
   display: flex;
   width: 100%;
-  height: 37px;
+  /* 与补丁右键菜单（items.css 的 .item-context-menu-item）同一套行几何：
+     同一个应用里两次右键不该弹出两种行高与字号。 */
+  min-height: var(--compact-control);
   align-items: center;
   gap: 10px;
-  padding: 0 10px;
+  padding: 6px 10px;
   border: 0;
   border-radius: var(--radius-sm);
   color: #cbd5e1;
   background: transparent;
   cursor: pointer;
   font: inherit;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   text-align: left;
   transition: color 90ms ease;
@@ -565,7 +572,7 @@
 }
 
 .category-context-delete {
-  flex: 0 0 37px;
+  flex: 0 0 var(--compact-control);
   color: #fb7185;
 }
 

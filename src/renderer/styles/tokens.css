@@ -20,6 +20,11 @@
   --color-info: #3dd7e5;
   --color-error: #ff3a5c;
   --color-focus: rgba(91, 107, 255, 0.35);
+  /* 滚动条强调色（默认主题的霓虹渐变）。这里存通道三元组而不是整色，因为
+     侧栏与设置面板都要按悬停进度叠 alpha：rgb(var(--…-rgb) / calc(…))。 */
+  --scrollbar-thumb-start-rgb: 244 63 94;
+  --scrollbar-thumb-mid-rgb: 236 72 153;
+  --scrollbar-thumb-end-rgb: 139 92 246;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;

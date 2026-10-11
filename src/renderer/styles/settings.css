@@ -45,7 +45,7 @@
 .settings-nav-item {
   display: flex;
   width: 100%;
-  min-height: 36px;
+  min-height: var(--control-height);
   align-items: center;
   gap: 8px;
   padding: 0 10px;
@@ -116,9 +116,9 @@
   border-radius: var(--radius-pill);
   background: linear-gradient(
     180deg,
-    rgb(244 63 94 / calc(15% + 85% * var(--settings-scrollbar-activation))),
-    rgb(236 72 153 / calc(17% + 83% * var(--settings-scrollbar-activation))),
-    rgb(139 92 246 / calc(20% + 80% * var(--settings-scrollbar-activation)))
+    rgb(var(--scrollbar-thumb-start-rgb) / calc(15% + 85% * var(--settings-scrollbar-activation))),
+    rgb(var(--scrollbar-thumb-mid-rgb) / calc(17% + 83% * var(--settings-scrollbar-activation))),
+    rgb(var(--scrollbar-thumb-end-rgb) / calc(20% + 80% * var(--settings-scrollbar-activation)))
   );
   transition: background 220ms var(--easing-standard);
 }
@@ -194,7 +194,7 @@
 .settings-path-input {
   min-width: 0;
   width: 100%;
-  height: 38px;
+  height: var(--control-height);
   padding: 0 12px;
   border: 1px solid color-mix(in srgb, var(--color-primary) 32%, var(--color-border-strong));
   border-radius: var(--radius-control);
@@ -231,7 +231,7 @@
 
 .settings-browse-button {
   min-width: 80px;
-  height: 38px;
+  height: var(--control-height);
   border-color: color-mix(in srgb, var(--color-primary) 42%, var(--color-border-strong));
   color: var(--color-primary-hover);
   background: color-mix(in srgb, var(--color-primary) 16%, var(--color-surface));
@@ -305,8 +305,9 @@
   margin: 0;
   padding: 0 0 0 17px;
   color: var(--color-text-primary);
-  font-size: 11px;
-  line-height: 1.45;
+  /* 更新说明是全应用最小的正文，11px/1.45 在 280px 高的滚动框里读着吃力。 */
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .settings-changelog li::marker {
@@ -372,7 +373,7 @@
 .settings-update-secondary,
 .settings-update-primary {
   display: inline-flex;
-  min-height: 30px;
+  min-height: var(--compact-control);
   align-items: center;
   justify-content: center;
   gap: 5px;
@@ -513,7 +514,7 @@
 .settings-support-button {
   display: inline-flex;
   min-width: 80px;
-  height: 31px;
+  height: var(--compact-control);
   align-items: center;
   justify-content: center;
   gap: 5px;
@@ -604,7 +605,7 @@
 
 .appearance-nav-button {
   display: flex;
-  min-height: 38px;
+  min-height: var(--control-height);
   align-items: center;
   gap: 8px;
   padding: 0 10px;
@@ -765,7 +766,7 @@
   margin-left: auto;
   color: color-mix(in srgb, var(--color-text-secondary) 86%, transparent);
   font-family: "Cascadia Mono", Consolas, monospace;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .checkered-pattern {
@@ -1363,7 +1364,7 @@
   color: var(--color-primary-hover);
   background: var(--color-elevated);
   cursor: pointer;
-  font-size: 10px;
+  font-size: 11px;
   white-space: nowrap;
 }
 
@@ -1443,7 +1444,7 @@
   color: var(--color-text-primary);
   background: var(--color-elevated);
   font-family: "Cascadia Mono", Consolas, monospace;
-  font-size: 10px;
+  font-size: 11px;
   text-align: right;
 }
 
@@ -1497,7 +1498,7 @@
   }
 
   .settings-nav-item {
-    min-height: 38px;
+    min-height: var(--control-height);
     justify-content: center;
     padding: 0 6px;
     font-size: 11px;
