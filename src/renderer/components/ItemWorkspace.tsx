@@ -432,7 +432,6 @@ export function ItemWorkspace(props: ItemWorkspaceProps): React.JSX.Element {
               type="search"
               value={props.query}
             />
-            <span aria-hidden="true" className="todo-line" />
           </label>
           <fieldset className="view-mode-control" aria-label="项目视图">
             <button

@@ -45,7 +45,7 @@
   gap: var(--space-2);
   overflow: hidden;
   color: var(--color-text-primary);
-  font-size: 15px;
+  font-size: var(--font-heading);
   font-weight: 500;
   line-height: 1.2;
   text-overflow: ellipsis;
@@ -55,7 +55,7 @@
 .window-titlebar-author {
   overflow: hidden;
   color: var(--color-text-secondary);
-  font-size: 14px;
+  font-size: var(--font-lg);
   /* 原为 650：tokens.css 的 font-synthesis:none 下 YaHei 只有 400/700，
      650 本就落到 Bold，改成 700 保留观感并去掉非标准档位。 */
   font-weight: 700;
@@ -76,7 +76,7 @@
   gap: 9px;
   padding: 0 13px 0 8px;
   border: 1px solid color-mix(in srgb, var(--color-primary) 42%, var(--color-border-strong));
-  border-radius: 8px;
+  border-radius: var(--radius-panel);
   color: var(--color-text-primary);
   background: color-mix(in srgb, var(--color-surface) 82%, transparent);
   opacity: 1;
@@ -101,7 +101,7 @@
   height: 22px;
   place-items: center;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   color: var(--color-text-secondary);
   background: transparent;
   cursor: pointer;
@@ -123,7 +123,7 @@
   width: 26px;
   height: 26px;
   place-items: center;
-  border-radius: 7px;
+  border-radius: var(--radius-control);
   color: var(--color-primary-hover);
   background: color-mix(in srgb, var(--color-primary) 18%, transparent);
 }
@@ -139,14 +139,14 @@
   flex: 0 0 auto;
   /* 14.3px → 14px、650 → 700：同一处同时去掉非阶梯字号与非标准字重，
      字重方向与原本的 Bold 渲染一致。 */
-  font-size: 14px;
+  font-size: var(--font-lg);
   font-weight: 700;
 }
 
 .window-titlebar-update-notice-copy span {
   overflow: hidden;
   color: var(--color-text-tertiary);
-  font-size: 13px;
+  font-size: var(--font-md);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -216,7 +216,7 @@
   border-radius: var(--radius-control);
   color: var(--color-text-primary);
   background: rgba(112, 17, 37, 0.96);
-  font-size: 12px;
+  font-size: var(--font-sm);
   overflow-wrap: anywhere;
 }
 
@@ -290,55 +290,68 @@
 .search-field input {
   width: 100%;
   min-width: 0;
+  /* input 不默认继承字体：不写这一行就退回 UA 的 13.33px 系统字体。 */
+  font: inherit;
   border: 0;
   outline: 0;
   color: var(--color-text-primary);
   background: transparent;
 }
 
+/* 搜索框没有可见标签，placeholder 是它唯一的说明文字，
+   所以用 secondary（约 6.4:1）而不用 tertiary（约 2.8:1）。 */
 .search-field input::placeholder {
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
+/* 视图切换与搜索框同处工具栏一行：共用 36px 高度、标准圆角、surface 底、
+   边框加 focus 光环，选中态沿用全局的 inset 线框语言。
+   原先的纯黑底与 translateX(-4px) 是为旁边 2.7em 高的搜索框单独配的偏移。 */
 .view-mode-control {
   display: flex;
-  height: 2.7em;
+  height: var(--control-height);
   align-items: center;
   gap: 2px;
-  margin-top: calc((var(--control-height) - 2.7em) / 2);
+  margin: 0;
   padding: 0;
-  border: none;
-  border-radius: 4px;
-  background: #000000;
-  transform: translateX(-4px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+}
+
+.view-mode-control:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-focus);
 }
 
 .view-mode-control button {
   display: grid;
   width: 34px;
-  height: 2.7em;
+  height: 100%;
   padding: 0;
   border: 0;
-  border-radius: 4px;
-  color: #ffffff;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
   background: transparent;
   cursor: pointer;
   place-items: center;
   transition:
-    color 0.5s ease,
-    background-color 0.5s ease;
+    color var(--motion-fast) var(--easing-standard),
+    background-color var(--motion-fast) var(--easing-standard),
+    box-shadow var(--motion-fast) var(--easing-standard);
 }
 
 .view-mode-control button:hover:not([aria-pressed="true"]) {
-  color: #ffffff;
-  background: #000000;
+  color: var(--color-text-primary);
+  background: var(--color-elevated);
 }
 
 .view-mode-control button[aria-pressed="true"] {
-  color: #ffffff;
-  background: #000000;
+  color: var(--color-text-primary);
+  background: var(--color-elevated);
+  box-shadow: inset 0 0 0 var(--selection-ring-selected-width) var(--selection-ring-color);
 }
 
 .view-mode-control button:active {
-  background: rgb(49, 228, 255);
+  background: var(--color-primary-pressed);
 }

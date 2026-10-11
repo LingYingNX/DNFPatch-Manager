@@ -99,9 +99,9 @@
     var(--color-elevated);
 }
 
-.item-grid .item-card[data-kind="patch"] .item-preview-empty {
-  background: #000;
-}
+/* 空预览沿用 .item-preview 自己的底色与 primary 渐变（见上），这里曾经盖过一层
+   纯黑：单个卡片看是「凹槽」，一整屏无预览补丁连起来就成了一块与卡片表面割裂的
+   黑洞。「这张卡没有预览图」交给卡片中央的占位图标表达即可。 */
 
 .item-card[data-kind="group"] .item-preview {
   color: var(--color-info);
@@ -125,7 +125,7 @@
   left: 0;
   z-index: 4;
   width: 28px;
-  height: 28px;
+  height: var(--compact-control);
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--motion-fast) var(--easing-standard);
@@ -190,7 +190,7 @@
   aspect-ratio: auto;
   border: 1px solid var(--color-primary);
   border-radius: var(--radius-control);
-  background: #000;
+  background: var(--color-elevated);
   object-fit: contain;
   pointer-events: none;
   opacity: 0;
@@ -241,7 +241,7 @@
   border-radius: var(--radius-pill);
   color: var(--color-text-primary);
   background: var(--color-primary);
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-weight: 700;
   line-height: 1;
 }
@@ -285,7 +285,7 @@
   cursor: pointer;
   inset: 0;
   border: 2px solid var(--color-border-strong);
-  border-radius: 50px;
+  border-radius: var(--radius-pill);
   transition: all 0.25s var(--easing-standard);
 }
 
@@ -353,7 +353,7 @@
   padding: 4px;
   border: 1px solid rgb(255 255 255 / 9%);
   border-radius: var(--radius-sm);
-  background: rgb(20 24 35 / 90%);
+  background: var(--menu-surface-color);
   box-shadow:
     0 18px 36px -6px rgb(0 0 0 / 65%),
     0 6px 14px -2px rgb(0 0 0 / 45%),
@@ -436,7 +436,7 @@
 }
 
 .item-context-menu-pill[data-danger="true"] {
-  background: rgb(244 63 94 / 20%);
+  background: var(--menu-danger-pill-bg);
 }
 
 .item-context-menu-separator {
@@ -452,18 +452,18 @@
   z-index: 1;
   display: flex;
   width: 100%;
-  min-height: 28px;
+  min-height: var(--compact-control);
   box-sizing: border-box;
   align-items: center;
   gap: 10px;
   padding: 6px 10px;
   border: 0;
   border-radius: var(--radius-sm);
-  color: #cbd5e1;
+  color: var(--menu-text-color);
   background: transparent;
   cursor: pointer;
   font: inherit;
-  font-size: 12px;
+  font-size: var(--font-sm);
   font-weight: 500;
   text-align: left;
   transition:
@@ -476,7 +476,7 @@
   width: 16px;
   height: 16px;
   flex: 0 0 16px;
-  color: #94a3b8;
+  color: var(--menu-muted-color);
   transition: color 90ms ease;
 }
 
@@ -488,11 +488,11 @@
 
 /* 可继续展开的目标不是禁用项，未悬停时也保持可操作的高对比文字。 */
 .item-context-menu-item.element.has-children:not(:disabled) {
-  color: #f1f5f9;
+  color: var(--menu-text-strong-color);
 }
 
 .item-context-menu-item.element.has-children:not(:disabled) .item-context-menu-icon {
-  color: #c7d2fe;
+  color: var(--menu-accent-strong-color);
 }
 
 .item-context-menu-label {
@@ -509,10 +509,10 @@
   padding: 2px 6px;
   border: 1px solid rgb(255 255 255 / 10%);
   border-radius: var(--radius-sm);
-  color: #94a3b8;
+  color: var(--menu-muted-color);
   background: rgb(255 255 255 / 6%);
   font-family: "Cascadia Mono", Consolas, monospace;
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-weight: 500;
   line-height: 1;
   transition: color 90ms ease;
@@ -529,7 +529,7 @@
 
 .item-context-menu-chevron {
   margin-left: auto;
-  color: #94a3b8;
+  color: var(--menu-muted-color);
   transition:
     color 90ms ease,
     transform 90ms ease;
@@ -537,34 +537,34 @@
 
 .item-context-menu-item.element:hover:not(:disabled),
 .item-context-menu-item.element:focus-visible:not(:disabled) {
-  color: #ffffff;
+  color: var(--menu-text-hover-color);
   outline: none;
 }
 
 .item-context-menu-item.element:hover:not(:disabled) .item-context-menu-icon {
-  color: #a5b4fc;
+  color: var(--menu-accent-color);
 }
 
 .item-context-menu-item.element:hover:not(:disabled) .item-context-menu-chevron {
-  color: #ffffff;
+  color: var(--menu-text-hover-color);
   transform: translateX(2px);
 }
 
 .item-context-menu-item.element:hover:not(:disabled) .item-context-menu-shortcut {
-  color: #e2e8f0;
+  color: var(--menu-text-soft-hover-color);
 }
 
 .item-context-menu-item.element.delete {
-  color: #fb7185;
+  color: var(--menu-danger-color);
 }
 
 .item-context-menu-item.element.delete svg {
-  color: #fb7185;
+  color: var(--menu-danger-color);
 }
 
 .item-context-menu-item.element.delete:hover:not(:disabled),
 .item-context-menu-item.element.delete:focus-visible:not(:disabled) {
-  color: #fda4af;
+  color: var(--menu-danger-hover-color);
 }
 
 .item-context-menu-item.element:active:not(:disabled) {
@@ -581,7 +581,7 @@
 }
 
 .item-context-menu-item.element:disabled:hover svg {
-  color: #94a3b8;
+  color: var(--menu-muted-color);
 }
 
 .item-card-body {
@@ -618,7 +618,7 @@
   display: -webkit-box;
   width: 100%;
   overflow: hidden;
-  font-size: 14px;
+  font-size: var(--font-lg);
   font-weight: 600;
   line-height: 1.35;
   overflow-wrap: anywhere;
@@ -644,7 +644,7 @@
   color: var(--patch-card-font-color);
   background: var(--color-surface);
   font: inherit;
-  font-size: 14px;
+  font-size: var(--font-lg);
   font-weight: 600;
   line-height: 1.35;
 }
@@ -655,14 +655,14 @@
 
 .item-meta {
   color: var(--patch-card-font-color);
-  font-size: 11px;
+  font-size: var(--font-xs);
 }
 
 .item-type,
 .item-date,
 .item-location {
   color: var(--patch-card-font-color);
-  font-size: 11px;
+  font-size: var(--font-xs);
 }
 
 .item-location {
@@ -699,7 +699,7 @@
   width: 100%;
   min-width: 0;
   overflow: hidden;
-  font-size: 14px;
+  font-size: var(--font-lg);
   font-weight: 600;
   line-height: 1.2;
   white-space: nowrap;
@@ -750,7 +750,7 @@
   max-width: 100%;
   margin: 0;
   color: var(--patch-card-font-color);
-  font-size: 12px;
+  font-size: var(--font-sm);
   font-weight: 600;
   line-height: 1.2;
   overflow: hidden;
@@ -779,7 +779,7 @@
   border-radius: var(--radius-pill);
   color: var(--color-text-secondary);
   background: var(--color-elevated);
-  font-size: 11px;
+  font-size: var(--font-xs);
   white-space: nowrap;
 }
 
@@ -873,6 +873,13 @@
   height: var(--item-list-thumb-icon-size, 28px);
 }
 
+/* 占位图标从 tertiary 提到 secondary：底不再是纯黑，三级灰在 elevated 上只剩约
+   2.5:1。放在所有预览图标规则之后——它是 (0, 3, 1)，写在前面会让后面更低的 svg
+   选择器触发 noDescendingSpecificity。只作用于 patch，组的图标仍用 --color-info。 */
+.item-card[data-kind="patch"] .item-preview-empty > svg {
+  color: var(--color-text-secondary);
+}
+
 .item-list .item-name-cell,
 .item-list .item-type,
 .item-list .item-meta,
@@ -907,12 +914,12 @@
   left: calc(var(--space-3) + 41px);
   width: auto;
   height: 24px;
-  font-size: 16px;
+  font-size: var(--font-xl);
   transform: translateY(-50%);
 }
 
 .item-list .item-title {
-  font-size: 16px;
+  font-size: var(--font-xl);
 }
 
 /* 列表视图不用跑马灯：让 track 不产生盒子，保持与加 track 之前完全一致的
@@ -924,7 +931,7 @@
 .item-list .item-type,
 .item-list .item-meta,
 .item-list .item-date {
-  font-size: 14px;
+  font-size: var(--font-lg);
 }
 
 .item-list .item-type {

@@ -23,21 +23,22 @@ describe("patch search field contract", () => {
     expect(screen.queryByRole("button", { name: /麦克风/u })).not.toBeInTheDocument();
   });
 
-  it("keeps the requested compact visual treatment", () => {
+  it("keeps the search control on the shared toolbar control language", () => {
     const stylesheet = readProjectFile("src/renderer/styles/layout.css");
     const block = stylesheet.match(/\.workspace-search-field\s*\{[\s\S]*?\n\}/u)?.[0] ?? "";
+    const toolbar = readProjectFile("src/renderer/styles/toolbar.css");
 
+    // 工作区搜索框只负责收窄宽度：颜色、圆角、高度、字体全部交给 .search-field。
     expect(block).toContain("max-width: 320px;");
     expect(block).toContain("flex: 0 1 320px;");
-    expect(block).toContain("height: 2.7em;");
-    expect(block).toContain("background-color: #000000;");
-    expect(block).toContain("border-radius: 4px;");
-    expect(stylesheet).toContain(".workspace-search-field:focus-within");
-    expect(stylesheet).toContain("color: rgb(133, 198, 255);");
-    expect(stylesheet).toContain(".workspace-search-field:focus-within .todo-line");
-    expect(stylesheet).toContain("animation: workspace-search-line-draw 0.3s ease-in forwards;");
-    expect(stylesheet).toContain("background: rgb(49, 228, 255);");
-    expect(stylesheet).toContain("@keyframes workspace-search-line-draw");
+    expect(block).not.toMatch(/color|background|border|height|font/u);
+    expect(toolbar).toContain(".search-field input::placeholder");
+    expect(toolbar).toContain(".search-field:focus-within");
+    // 焦点反馈与其它工具栏控件一致：图标转 primary，外框在 .search-field 里。
+    expect(stylesheet).toContain(".workspace-search-field:focus-within > svg");
+    // 工具栏里不再有自绘的下划线动画。
+    expect(stylesheet).not.toContain(".todo-line");
+    expect(stylesheet).not.toContain("workspace-search-line-draw");
   });
 
   it("does not ship development overlay dependencies or entry-point injection", () => {

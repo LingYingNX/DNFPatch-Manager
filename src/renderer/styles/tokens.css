@@ -25,6 +25,18 @@
   --scrollbar-thumb-start-rgb: 244 63 94;
   --scrollbar-thumb-mid-rgb: 236 72 153;
   --scrollbar-thumb-end-rgb: 139 92 246;
+  /* 色相环渐变：分类颜色滑杆的轨道（layout.css）与外观页的字体颜色条
+     （settings.css）共用。此前三处各写一遍六色停靠点，其中一处百分比还与本处不一致。 */
+  --hue-ring-gradient: linear-gradient(
+    90deg,
+    #ff0000 0%,
+    #ffff00 16.66%,
+    #00ff00 33.33%,
+    #00ffff 50%,
+    #0000ff 66.66%,
+    #ff00ff 83.33%,
+    #ff0000 100%
+  );
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -39,6 +51,18 @@
   --radius-panel: 8px;
   --radius-dialog: 16px;
   --radius-pill: 999px;
+  /* 字号阶梯。11/12 是次要文字的两档（说明与菜单标签），13 是列表行，
+     14 是正文，16 是卡片标题与输入框，20 是空状态主标题。
+     注意 .switch 的 font-size: 17px 是 em 基准而不是文字尺寸，不属于这一阶梯。 */
+  --font-xs: 11px;
+  --font-sm: 12px;
+  --font-md: 13px;
+  --font-lg: 14px;
+  --font-xl: 16px;
+  --font-2xl: 20px;
+  /* 标题档：标题栏标题、设置页小标题与空状态主标题共用，
+     比正文大一档、比卡片标题小一档。 */
+  --font-heading: 15px;
   --control-height: 36px;
   --window-titlebar-height: 36px;
   --section-divider-width: 1.575px;
@@ -66,6 +90,21 @@
   --selection-ring-color: #a06bff;
   --selection-ring-width: 1px;
   --selection-ring-selected-width: 1.6px;
+  /* 右键菜单语义色：补丁库菜单（items.css）与分类树菜单（layout.css）是同一个
+     视觉角色，两处曾经各自写死同一批 slate/indigo/rose 值，改一处会漏另一处。 */
+  --menu-text-color: #cbd5e1;
+  --menu-text-hover-color: #ffffff;
+  --menu-text-strong-color: #f1f5f9;
+  --menu-text-soft-hover-color: #e2e8f0;
+  --menu-muted-color: #94a3b8;
+  --menu-accent-color: #a5b4fc;
+  --menu-accent-strong-color: #c7d2fe;
+  --menu-danger-color: #fb7185;
+  --menu-danger-hover-color: #fda4af;
+  /* 菜单自己的底色与危险操作底色：补丁库菜单（items.css）与分类树菜单（layout.css）
+     两处逐字重复同一组值。 */
+  --menu-surface-color: rgb(20 24 35 / 90%);
+  --menu-danger-pill-bg: rgb(244 63 94 / 20%);
   --navigation-font-color: #f2f4f8;
   --patch-card-font-color: #f2f4f8;
 }
