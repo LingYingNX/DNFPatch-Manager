@@ -56,7 +56,9 @@
   overflow: hidden;
   color: var(--color-text-secondary);
   font-size: 14px;
-  font-weight: 650;
+  /* 原为 650：tokens.css 的 font-synthesis:none 下 YaHei 只有 400/700，
+     650 本就落到 Bold，改成 700 保留观感并去掉非标准档位。 */
+  font-weight: 700;
   text-overflow: ellipsis;
 }
 
@@ -135,8 +137,10 @@
 
 .window-titlebar-update-notice-copy strong {
   flex: 0 0 auto;
-  font-size: 14.3px;
-  font-weight: 650;
+  /* 14.3px → 14px、650 → 700：同一处同时去掉非阶梯字号与非标准字重，
+     字重方向与原本的 Bold 渲染一致。 */
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .window-titlebar-update-notice-copy span {

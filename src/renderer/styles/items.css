@@ -50,6 +50,8 @@
   width: 100%;
   height: auto;
   aspect-ratio: 4 / 3;
+  /* 信息区高度被两条视觉契约夹住：view-controls.e2e.ts 要求它 < 60px、
+     且预览区占卡片高度的 60%~80%。单行标题只需 56px。 */
   grid-template-rows: minmax(0, 1fr) 56px;
 }
 
@@ -86,7 +88,11 @@
   border-bottom: 1px solid var(--color-border);
   color: var(--color-text-tertiary);
   background:
-    linear-gradient(rgba(91, 107, 255, 0.05), rgba(91, 107, 255, 0)), var(--color-elevated);
+    linear-gradient(
+      color-mix(in srgb, var(--color-primary) 5%, transparent),
+      color-mix(in srgb, var(--color-primary) 0%, transparent)
+    ),
+    var(--color-elevated);
 }
 
 .item-grid .item-card[data-kind="patch"] .item-preview-empty {
@@ -291,7 +297,7 @@
 
 .switch input:checked + .slider {
   border-color: var(--color-primary);
-  box-shadow: 0 0 12px rgba(91, 107, 255, 0.45);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--color-primary) 45%, transparent);
 }
 
 .switch input:checked + .slider::before {
@@ -318,7 +324,7 @@
   flex-direction: column;
   padding: 4px;
   border: 1px solid rgb(255 255 255 / 9%);
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   background: rgb(20 24 35 / 90%);
   box-shadow:
     0 18px 36px -6px rgb(0 0 0 / 65%),
@@ -388,7 +394,7 @@
   left: 0;
   width: 0;
   height: 0;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   background: rgb(255 255 255 / 10%);
   opacity: 0;
   pointer-events: none;
@@ -424,7 +430,7 @@
   gap: 10px;
   padding: 6px 10px;
   border: 0;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   color: #cbd5e1;
   background: transparent;
   cursor: pointer;
@@ -474,7 +480,7 @@
   margin-left: 8px;
   padding: 2px 6px;
   border: 1px solid rgb(255 255 255 / 10%);
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   color: #94a3b8;
   background: rgb(255 255 255 / 6%);
   font-family: "Cascadia Mono", Consolas, monospace;
@@ -565,7 +571,7 @@
   grid-template-rows: auto auto;
   align-content: center;
   column-gap: var(--space-2);
-  row-gap: 4px;
+  row-gap: var(--space-1);
   min-height: 0;
   box-sizing: border-box;
   overflow: hidden;
@@ -596,6 +602,7 @@
 .item-title-edit {
   position: absolute;
   z-index: 3;
+  /* 卡片信息区高度，与 .item-grid .item-card 的第二行轨道保持一致。 */
   top: calc(100% - 56px + var(--space-2) + 2px);
   right: calc(var(--space-3) + 1px);
   left: calc(var(--space-3) + 1px);
@@ -656,15 +663,57 @@
 }
 
 .item-grid .item-title {
+  /* 单行显示；装不下时鼠标悬停向左滚动露出后半段（歌词式跑马灯），
+     文本本身不缩放、不换行，长度不变。container-type 让子级的 100cqw
+     指到标题框宽度，才能用它减掉文本宽度、算出正好滚到末尾的距离。 */
+  container-type: inline-size;
   display: block;
   width: 100%;
   min-width: 0;
   overflow: hidden;
   font-size: 14px;
   font-weight: 600;
-  text-overflow: ellipsis;
   line-height: 1.2;
   white-space: nowrap;
+}
+
+.item-grid .item-title-track {
+  /* width: max-content 让 translateX 的 100% 等于文本自身宽度；
+     max-width: 100% 在静止态把它夹回标题框宽，省略号才有落点。 */
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.item-grid .item-card-shell:hover .item-title-track,
+.item-grid .item-card-shell:focus-within .item-title-track {
+  /* 悬停时解夹，位移量交给关键帧按「超出量」算。 */
+  max-width: none;
+  animation: item-title-marquee 2.4s var(--easing-standard) 0.4s infinite alternate;
+}
+
+@keyframes item-title-marquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    /* 100cqw = 标题框宽，100% = 文本宽；min(0px, …) 让解夹后仍比标题框窄
+       的名字位移为 0，短名不会无端窜动。 */
+    transform: translateX(min(0px, calc(100cqw - 100%)));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* tokens.css 的全局减弱动效规则会把时长压到 0.001ms 且只播一次，标题会
+     停在滚到底的位置、看着像排版错位；这里直接不滚。 */
+  .item-grid .item-card-shell:hover .item-title-track,
+  .item-grid .item-card-shell:focus-within .item-title-track {
+    animation: none;
+  }
 }
 
 .item-grid .item-meta {
@@ -837,6 +886,12 @@
 
 .item-list .item-title {
   font-size: 16px;
+}
+
+/* 列表视图不用跑马灯：让 track 不产生盒子，保持与加 track 之前完全一致的
+   布局，避免在多列网格行里改变省略号落点。 */
+.item-list .item-title-track {
+  display: contents;
 }
 
 .item-list .item-type,

@@ -733,7 +733,11 @@ export function ItemWorkspace(props: ItemWorkspaceProps): React.JSX.Element {
                   </span>
                   <span className="item-card-body">
                     <span className="item-name-cell">
-                      <span className="item-title">{item.name}</span>
+                      {/* track 是标题滚动层：卡片里名字装不下时由它在悬停时
+                          向左平移，列表视图用 display: contents 让它不产生盒子。 */}
+                      <span className="item-title">
+                        <span className="item-title-track">{item.name}</span>
+                      </span>
                       {location === null ? null : <span className="item-location">{location}</span>}
                     </span>
                     {item.kind === "patch" ? null : (

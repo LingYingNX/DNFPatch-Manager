@@ -27,8 +27,12 @@
   --space-5: 20px;
   --space-6: 24px;
   --space-8: 32px;
+  /* 小号圆角：右键菜单、菜单项、小图标按钮、色块等紧凑元素共用。
+     按尺寸而非角色命名，因为这些位置的角色并不统一。 */
+  --radius-sm: 5px;
   --radius-control: 7px;
   --radius-panel: 8px;
+  --radius-dialog: 16px;
   --radius-pill: 999px;
   --control-height: 36px;
   --window-titlebar-height: 36px;
@@ -51,10 +55,12 @@
   --appearance-contrast: 100%;
   --category-text-color: #9aa0ae;
   --selected-tint: #5b6bff;
-  --category-row-hover-border: #b7d6ff;
-  --category-row-selected-border: #a06bff;
-  --category-row-ring-width: 1px;
-  --category-row-selected-ring-width: 1.6px;
+  /* 全局选中/悬停线框语言：分类树、设置导航、外观对话框共用同一套，
+     避免同一语义同时存在「填充 + 光晕」和「inset 线框」两种表达。 */
+  --selection-ring-hover-color: #b7d6ff;
+  --selection-ring-color: #a06bff;
+  --selection-ring-width: 1px;
+  --selection-ring-selected-width: 1.6px;
   --navigation-font-color: #f2f4f8;
   --patch-card-font-color: #f2f4f8;
 }

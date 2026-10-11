@@ -2,7 +2,7 @@
   width: min(675px, calc(100vw - 48px));
   height: min(450px, calc(100vh - 48px));
   border: 1px solid color-mix(in srgb, var(--color-border-strong) 82%, transparent);
-  border-radius: 16px;
+  border-radius: var(--radius-dialog);
   background: color-mix(in srgb, var(--color-surface) 68%, transparent);
   box-shadow:
     0 24px 48px rgba(0, 0, 0, 0.5),
@@ -49,10 +49,14 @@
   align-items: center;
   gap: 8px;
   padding: 0 10px;
+  /* 与分类树同一套线框语言：inset 环 + 透明底。保留 1px 透明 border 是为了
+     占住盒模型位置（全局 box-sizing: border-box，去掉会让内容左移 1px）；
+     1.6px 的选中环不能改用 border 画，Blink 会向下取整到整数设备像素而退化。 */
   border: 1px solid transparent;
   border-radius: 8px;
   color: var(--color-text-secondary);
   background: transparent;
+  box-shadow: inset 0 0 0 var(--selection-ring-width) transparent;
   cursor: pointer;
   font: inherit;
   font-size: 12px;
@@ -60,24 +64,21 @@
   transition:
     color var(--motion-standard) var(--easing-standard),
     background-color var(--motion-standard) var(--easing-standard),
-    border-color var(--motion-standard) var(--easing-standard),
-    /* 选中态用 box-shadow 画光晕，不列入过渡会瞬间跳变。 */
     box-shadow var(--motion-standard) var(--easing-standard);
 }
 
 .settings-nav-item:hover,
 .settings-nav-item:focus-visible {
-  border-color: color-mix(in srgb, var(--color-border-strong) 72%, transparent);
   color: var(--color-text-primary);
-  background: color-mix(in srgb, var(--color-elevated) 64%, transparent);
+  background: transparent;
+  box-shadow: inset 0 0 0 var(--selection-ring-width) var(--selection-ring-hover-color);
   outline: none;
 }
 
 .settings-nav-item[aria-selected="true"] {
-  border-color: color-mix(in srgb, var(--color-primary) 42%, transparent);
   color: var(--color-text-primary);
-  background: color-mix(in srgb, var(--color-primary) 20%, transparent);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-primary) 16%, transparent);
+  background: transparent;
+  box-shadow: inset 0 0 0 var(--selection-ring-selected-width) var(--selection-ring-color);
 }
 
 .settings-nav-item svg {
@@ -140,7 +141,9 @@
   margin: 0;
   color: var(--color-text-primary);
   font-size: 15px;
-  font-weight: 650;
+  /* 原 650：font-synthesis:none + Microsoft YaHei 只有 400/700 两档，
+     650 本就被字体匹配算法落到 Bold，写成 700 观感不变、去掉非标准档位。 */
+  font-weight: 700;
 }
 
 .settings-detail-heading p {
@@ -206,7 +209,7 @@
 
 .settings-path-input:hover {
   border-color: var(--color-primary-hover);
-  box-shadow: 0 0 14px rgba(91, 107, 255, 0.14);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--color-primary) 14%, transparent);
 }
 
 .settings-path-input:focus {
@@ -214,7 +217,7 @@
   background: var(--color-surface);
   box-shadow:
     0 0 0 3px var(--color-focus),
-    0 0 20px rgba(91, 107, 255, 0.28);
+    0 0 20px color-mix(in srgb, var(--color-primary) 28%, transparent);
 }
 
 .settings-path-input:disabled {
@@ -238,7 +241,7 @@
   border-color: var(--color-primary-hover);
   color: var(--color-text-primary);
   background: color-mix(in srgb, var(--color-primary) 25%, var(--color-surface));
-  box-shadow: 0 0 16px rgba(91, 107, 255, 0.2);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--color-primary) 20%, transparent);
 }
 
 .settings-update-card {
@@ -246,7 +249,7 @@
   gap: 12px;
   padding: 14px;
   border: 1px solid color-mix(in srgb, var(--color-primary) 30%, var(--color-border-strong));
-  border-radius: 9px;
+  border-radius: var(--radius-panel);
   background: color-mix(in srgb, var(--color-surface) 64%, transparent);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
@@ -262,7 +265,7 @@
   margin: 0;
   color: var(--color-text-primary);
   font-size: 14px;
-  font-weight: 650;
+  font-weight: 700;
 }
 
 .settings-version-badge {
@@ -275,14 +278,14 @@
   color: var(--color-primary-hover);
   background: color-mix(in srgb, var(--color-primary) 16%, transparent);
   font-size: 11px;
-  font-weight: 650;
+  font-weight: 700;
   white-space: nowrap;
 }
 
 .settings-changelog-heading {
   color: var(--color-text-secondary);
   font-size: 11px;
-  font-weight: 650;
+  font-weight: 700;
 }
 
 .settings-changelog-box {
@@ -439,7 +442,7 @@
   padding: 8px 10px;
   border: 1px solid var(--support-border);
   border-left: 3px solid var(--support-accent);
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   background: var(--support-surface);
   overflow: hidden;
 }
@@ -489,7 +492,7 @@
 .settings-support-copy strong {
   color: var(--color-text-primary);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 700;
 }
 
 .settings-support-copy span:not(.settings-support-icon) {
@@ -516,12 +519,12 @@
   gap: 5px;
   padding: 0 11px;
   border: 0;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   color: #ffffff;
   background: var(--support-button);
   cursor: pointer;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 700;
   transition:
     background-color var(--motion-standard) var(--easing-standard),
     box-shadow var(--motion-standard) var(--easing-standard);
@@ -605,27 +608,33 @@
   align-items: center;
   gap: 8px;
   padding: 0 10px;
-  border: 1px solid var(--color-border);
+  /* 静止态那圈细线原由 border 提供，现改由 inset 环画；border 保留为透明，
+     只为占住 1px 盒模型位置，避免内容位移。 */
+  border: 1px solid transparent;
   border-radius: var(--radius-control);
   color: var(--color-text-secondary);
   background: var(--color-surface);
+  box-shadow: inset 0 0 0 var(--selection-ring-width) var(--color-border);
   cursor: pointer;
   font-size: 12px;
   font-weight: 500;
   text-align: left;
+  transition:
+    color var(--motion-standard) var(--easing-standard),
+    background-color var(--motion-standard) var(--easing-standard),
+    box-shadow var(--motion-standard) var(--easing-standard);
 }
 
 .appearance-nav-button:hover {
-  border-color: var(--color-primary);
   color: var(--color-text-primary);
   background: var(--color-elevated);
+  box-shadow: inset 0 0 0 var(--selection-ring-width) var(--selection-ring-hover-color);
 }
 
 .appearance-nav-button[aria-pressed="true"] {
-  border-color: var(--color-primary);
   color: var(--color-text-primary);
-  background: color-mix(in srgb, var(--color-primary) 18%, var(--color-surface));
-  box-shadow: 0 2px 8px var(--color-focus);
+  background: var(--color-surface);
+  box-shadow: inset 0 0 0 var(--selection-ring-selected-width) var(--selection-ring-color);
 }
 
 .appearance-nav-button svg {
@@ -712,32 +721,33 @@
   align-items: center;
   gap: 10px;
   padding: 0 12px;
-  border: 1px solid var(--color-border);
+  /* 静止态细线原由 border 提供，改由 inset 环画；border 保留为透明占位，
+     避免 1px 盒模型位移。 */
+  border: 1px solid transparent;
   border-radius: 8px;
   color: var(--color-text-secondary);
   background: color-mix(in srgb, var(--color-canvas) 82%, transparent);
+  box-shadow: inset 0 0 0 var(--selection-ring-width) var(--color-border);
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
   text-align: left;
   transition:
     background-color var(--motion-standard) var(--easing-standard),
-    border-color var(--motion-standard) var(--easing-standard),
     color var(--motion-standard) var(--easing-standard),
     box-shadow var(--motion-standard) var(--easing-standard);
 }
 
 .appearance-font-tab:hover {
-  border-color: var(--color-border-strong);
   color: var(--color-text-primary);
   background: var(--color-elevated);
+  box-shadow: inset 0 0 0 var(--selection-ring-width) var(--selection-ring-hover-color);
 }
 
 .appearance-font-tab[aria-selected="true"] {
-  border-color: var(--color-primary);
   color: var(--color-text-primary);
-  background: color-mix(in srgb, var(--color-primary) 12%, var(--color-canvas));
-  box-shadow: 0 0 12px color-mix(in srgb, var(--color-primary) 25%, transparent);
+  background: color-mix(in srgb, var(--color-canvas) 82%, transparent);
+  box-shadow: inset 0 0 0 var(--selection-ring-selected-width) var(--selection-ring-color);
 }
 
 .appearance-font-tab-name {
@@ -1025,7 +1035,7 @@
   place-items: center;
   padding: 0;
   border: 1px solid var(--color-border-strong);
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   color: var(--color-text-secondary);
   background: var(--color-elevated);
   cursor: pointer;
@@ -1349,7 +1359,7 @@
   gap: 4px;
   padding: 2px 8px;
   border: 1px solid var(--color-border);
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   color: var(--color-primary-hover);
   background: var(--color-elevated);
   cursor: pointer;
