@@ -1,6 +1,6 @@
 <!-- FOR AI AGENTS - Human readability is a side effect, not a goal -->
 <!-- Managed by agent: keep sections and order; edit content, not structure -->
-<!-- Last updated: 2026-10-09 | Last verified: 2026-10-09 -->
+<!-- Last updated: 2026-10-10 | Last verified: 2026-10-10 -->
 
 # AGENTS.md
 
@@ -10,7 +10,7 @@
 
 ## 项目概览
 
-DNF 补丁管理器（`dnf-patch-manager-rewrite`）是一个 Windows 桌面 Electron + React + TypeScript 应用，用于管理用户本地 DNF `.npk` 补丁库。只管理用户已有文件；不做在线下载、社区分发或游戏逻辑修改。
+DNF 补丁管理器（`dnf-patch-manager-rewrite`）是一个 Windows 桌面 Electron + React + TypeScript 应用，用于管理用户本地 DNF 补丁库（`.npk` 图像/音效与 `.bk2` 视频补丁）。只管理用户已有文件；不做在线下载、社区分发或游戏逻辑修改。
 
 | 项 | 值 |
 |----|----|
@@ -70,8 +70,7 @@ pnpm doctor                      # react-doctor 诊断
 | `src/core/state` | 原子 JSON 存储与 schema |
 | `src/core/groups` | 虚拟分组与迁移 |
 | `src/core/presets` | 预设 |
-| `src/core/appearance` | 外观设置 |
-| `src/core/wallpapers` | 壁纸 |
+| `src/core/appearance` · `src/core/wallpapers` | 外观设置与壁纸 |
 | `src/core/concurrency` | async-mutex |
 | `tests/` | 单元/集成/端到端测试 |
 | `docs/` | 用户手册、项目记忆、ADR、规划/规格、审计 |
@@ -127,12 +126,9 @@ pnpm doctor                      # react-doctor 诊断
 
 ## 文档指针（Pointer）
 
-- 用户手册：`docs/USER_GUIDE.md`
-- 项目历史/长期记忆：`docs/PROJECT_HISTORY.md`、`docs/PROJECT_MEMORY.md`
-- 功能模块/维护手册：`docs/FUNCTION_MODULES.md`、`docs/MAINTENANCE.md`
-- 架构/ADR：`docs/adr/`、`docs/superpowers/specs/`、`docs/superpowers/plans/`
-- 完成审计：`docs/verification/`
-- 学习/错误/功能记录：`.learnings/`
+- 手册/项目记忆：`docs/USER_GUIDE.md`、`docs/PROJECT_HISTORY.md`、`docs/PROJECT_MEMORY.md`
+- 模块/维护/审计：`docs/FUNCTION_MODULES.md`、`docs/MAINTENANCE.md`、`docs/verification/`
+- 架构/ADR/规格/经验：`docs/adr/`、`docs/superpowers/specs/`、`docs/superpowers/plans/`、`.learnings/`
 
 ## Scoped AGENTS.md（进入对应目录前必须阅读）
 

@@ -1,4 +1,4 @@
-<!-- Managed by agent: keep sections and order, edit content, not structure. Last updated: 2026-10-09 -->
+<!-- Managed by agent: keep sections and order, edit content, not structure. Last updated: 2026-10-10 -->
 
 # AGENTS.md — tests
 
@@ -73,3 +73,6 @@ pnpm test:e2e
 - **CSS 计算样式断言只能放 `tests/e2e/`**：jsdom 不做样式计算，`getComputedStyle` 的 `box-shadow`/`border-color` 在 renderer 测试里恒为空值，写在那里等于恒真断言。渲染层测交互与 DOM 结构，视觉终值（线框、光晕、过渡后颜色）用 Playwright + Electron 在 e2e 断言。
 - e2e 断言带 `transition` 的属性时必须 `expect.poll` 到终值，直接 `evaluate` 会采到过渡中间值（如 alpha 0.824）造成假红。
 - e2e 启动 Electron 一律带独立 `--user-data-dir=`（等号形式），否则用户开着应用时单实例锁会挤掉测试实例（见 `.learnings/ERRORS.md` ERR-20260917-002）。
+- **BK2 预览生成测试必须注入转换器桩**，不要在测试机真实调用 `bink2nvenc.exe` / `radvideo64.exe` / `ffmpeg.exe`：外部工具是否存在因机而异，真实调用会让测试在无工具的机器上恒红。用 `resolveVideoPreviewTools` 的依赖注入替代，断言文件命名与降级路径（ERR-20261009-003 / ERR-20261010-001）。
+- **协议层测试要覆盖 200/206/416**：`dnf-library:` 的 MP4 响应依赖 byte-range，`tests/integration/library-preview-protocol.test.ts` 覆盖三种响应码；改 `src/main/managed-asset-protocol.ts` 时先看这里。
+- `tests/unit/media-scheme-contracts.test.ts` 是 scheme 与 CSP 一致性的守卫：改 `src/main/library-schemes.ts` 或 `src/renderer/index.html` 的 CSP 必须同步它，否则悬停播放静默失效（ERR-20261009-004）。

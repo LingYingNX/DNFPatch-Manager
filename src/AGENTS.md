@@ -1,16 +1,18 @@
-<!-- Managed by agent: keep sections and order; edit content, not structure. Last updated: 2026-10-09 -->
+<!-- Managed by agent: keep sections and order; edit content, not structure. Last updated: 2026-10-10 -->
 
 # AGENTS.md — src
 
 ## Overview
 
-Electron 主进程、预加载桥、渲染进程 React UI 与共享类型。生产代码不得反向依赖 `tests/`。
+Electron 主进程、预加载桥、渲染进程 React UI 与共享类型。补丁库支持 `.npk`（图像/音效）与 `.bk2`（视频）两类。生产代码不得反向依赖 `tests/`。
 
 ## Key Files
 
 | 路径 | 职责 |
 |------|------|
 | `src/main/` | Electron 窗口、生命周期、`ipc/` 处理器、资源协议 |
+| `src/main/library-schemes.ts` | 自定义 scheme（`dnf-asset:` / `dnf-library:`）与特权声明，须与 `renderer/index.html` 的 CSP 同源 |
+| `src/main/library/video-preview-generator.ts` | BK2 预览生成：探测本机外部转换器，产出同名 JPG 封面与 MP4 |
 | `src/preload/` | `contextBridge` 暴露给渲染进程的 `DnfApi` |
 | `src/renderer/` | React 界面（`components/`、`styles/`、`workspace/`） |
 | `src/core/` | 按业务域拆分的逻辑，不得依赖 renderer 组件 |
@@ -69,6 +71,19 @@ pnpm build
 - 改 `src/shared/contracts.ts` 的 `APP_VERSION` 时，必须同步 `package.json` 版本与 Git 标签。
 - 外观相关 CSS 变量由 `src/renderer/workspace/useAppearance.ts` 统一写入，不要在组件里另起变量名。
 - 分类排序：`scanCategory` / `scanCategoryTree` 的 `savedOrders` 是显示顺序的唯一输入。改名、新建或固化同级顺序前必须传入 `categoryOrder.getAll()` 的结果；未记录的分类会回落到 `byName`，不能只改顺序记录而不迁移或固化。回归测试要覆盖“从未排序过”和“陈旧且不完整记录”两类场景（见 ERR-20260920-004 / ERR-20260920-005）。
+
+## 视频补丁（BK2）
+
+`.bk2` 与 `.npk` 在库里同权，但**安装路由不同**：BK2 只能装到 `video`，NPK 按 `NpkPatchKind`（`image` / `sound` / `video`）分流到 `ImagePacks2` / `SoundPacks`。判定入口统一走 `classifyNpk`（`core/install/npk-type.ts`）。
+
+- **拖入端与扫描端必须共用同一判定**：`isLibraryPatchPath` 是拖拽、导入、扫描、移动、分组、删除、重命名、回收、预设与安装源校验的唯一扩展名口径。任一环节另写 NPK-only 判断，就会出现“拖不进也扫不出”或“扫得出拖不进”的不对称（ERR-20261009-001）。
+- **预览只在拖入路径生成是错的**：手动复制进库的 BK2 也要在扫描时补齐封面/MP4，每个补丁每进程只尝试一次，生成完成后再通知渲染进程刷新（ERR-20261009-005）。
+- **转换器是外部工具，且是命令分发器**：`radvideo64.exe` / `Bink2ForUnreal.exe` 必须写成 `<exe> BinkConv <输入> <输出> [/开关]`，漏掉 `BinkConv` 会立刻静默 `exit=1` 且无产物（ERR-20261009-002）。转换与抽帧都要等产物稳定后显式结束进程树，`radvideo64.exe` 转换完仍驻留（ERR-20261009-003）。
+- **中文路径必须先搬进 ASCII 工作目录**：`bink2nvenc.exe` 只能打开纯 ASCII 路径，中文路径直接 `BinkOpen failed: Error opening file.`。见 `resolveWorkspaceRoot`。
+- **`--start N --count M` 组合不可靠**：不同 N 会产出 byte 相同的结果；封面抽帧一律走 `radvideo64.exe` 的单帧 JPG，不用它抽帧。JPG 导出器对 `/Z2000` 这类开关会静默放弃产物（ERR-20261010-001）。
+- **视频能否播放取决于 CSP**：`<video>` 走 `media-src`，`src/renderer/index.html` 的 CSP 未列出 `dnf-library:` 时元素渲染出来但永远拿不到帧（表现为悬停一个黑框，ERR-20261009-004）。改动 scheme 或 CSP 需同步 `tests/unit/media-scheme-contracts.test.ts`。
+- **同名 MP4 预览随补丁一起走**：回收、清空、单条删除、重命名、移动时都要连带处理同名 MP4，否则会留下孤儿预览。
+- 转换器不入库（`tools/bink2nvenc/` 已在 `.gitignore`）：RAD 官方许可禁止再分发，运行期探测本机已有工具，探测不到就静默跳过，不影响导入。
 
 ## 禁止重复造路径/状态辅助（简化前必读）
 
