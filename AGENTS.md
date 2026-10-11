@@ -100,7 +100,7 @@ pnpm doctor                      # react-doctor 诊断
 - 推送边界（与硬性规则同源）：`git push` 前必须本轮用户明确说过"推送 / push"；说"构建""发布""更新 Release 资产"时只做本地构建与资产替换，完成后报告并等用户决定是否推送。多会话并行时，其他会话的提交一律不代推。
 - 源码仓库与发布物分离：提交 `src/`、配置、测试和必要脚本；不提交 `node_modules/`、`out/`、`dist/`、`data/`、用户补丁库、日志或本地 `.learnings/`。安装包、`latest.yml`、`.blockmap` 只上传到 GitHub Release。
 - 只上传源码时不要顺手改写 `README.md` 或其它说明文件；发布附件不是源码文件。
-- 发布前保持 `package.json` 的 `version`、`src/shared/contracts.ts` 的 `APP_VERSION`、Git 标签 `vX.Y.Z` 和 Release 中的 `latest.yml` 一致。同一版本的重打包不会触发现有安装的自动更新，修复更新必须递增版本号。
+- 发布前保持 `package.json` 的 `version`、`src/shared/contracts.ts` 的 `APP_VERSION` 与 `APP_RELEASE_NOTES`（应用内更新提示读它）、`src/renderer/components/WindowTitleBar.tsx` 与 `WorkspaceApp.tsx` 中 `?? "<version>"` 的两处兜底字面量、`tests/unit/smoke.test.ts` 的版本断言、`scripts/verify-nsis-preservation.sh` 里的新旧安装包文件名、Git 标签 `vX.Y.Z` 和 Release 中的 `latest.yml` 全部一致——它们是同一个版本的唯一定义点，漏改任一处的后果是标题栏、更新提示或校验脚本读到旧版本。同一版本的重打包不会触发现有安装的自动更新，修复更新必须递增版本号。
 - `pnpm install --frozen-lockfile` 不保证存在 `node_modules/electron/dist`；执行 `pnpm dist:installer` 或 `pnpm release` 前，发布环境必须先运行 `pnpm exec install-electron`。GitHub Actions 的发布流程也必须保留这一步。
 - `electron-updater` 从 GitHub Release 的安装包和 `latest.yml` 获取更新，不读取仓库源码；NSIS 更新安装目录必须沿用当前运行程序目录。
 - 发布（含草稿转正式）后必须确认 GitHub `releases/latest` 接口指向新标签——`electron-updater` 稳定通道只查这个接口，Latest 指针留在旧版本时客户端检测不到更新且无报错。用 API `PATCH /releases/<id>` 发布时必须显式传 `-F make_latest=true`（缺省不自动迁移；与 `draft=false` 合并在同一次 PATCH 里时可能不生效，指针未迁移就单独再发一次 `-F make_latest=true`）；electron-builder 上传 `.exe` 与 `.blockmap` 可能并发创建两个草稿，需删除残缺草稿再发布。`release.yml` 的「Verify latest release pointer」步骤已机器校验此项，手动发布时用 `gh api repos/<owner>/<repo>/releases/latest --jq .tag_name` 核对。
