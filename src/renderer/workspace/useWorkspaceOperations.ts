@@ -247,6 +247,29 @@ export function useWorkspaceOperations({
     }
   };
 
+  const restoreRecycleItems = async (entries: readonly RecycleEntryDto[]): Promise<boolean> => {
+    const api = withClient();
+    if (api === null || entries.length === 0) {
+      return false;
+    }
+    try {
+      for (const entry of entries) {
+        const result = await api.restoreItem({ id: entry.id });
+        if (!result.ok) {
+          return reportFailure(result.error.message);
+        }
+      }
+      await refresh();
+      await refreshRecycle();
+      return true;
+    } catch (error) {
+      if (error instanceof Error) {
+        return reportFailure("恢复失败，回收站内容未被修改。");
+      }
+      throw error;
+    }
+  };
+
   const deleteRecycleItems = async (entries: readonly RecycleEntryDto[]): Promise<boolean> => {
     const api = withClient();
     if (api === null || entries.length === 0) {
@@ -279,6 +302,7 @@ export function useWorkspaceOperations({
     recycle,
     rename,
     renameItem,
+    restoreRecycleItems,
     setEnabledFor,
   };
 }

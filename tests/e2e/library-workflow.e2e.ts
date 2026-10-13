@@ -55,7 +55,10 @@ test("stores patch previews beside NPK files and group previews as managed asset
     writeFile(patchSource, previewBytes),
     writeFile(groupSource, previewBytes),
   ]);
-  const application = await electron.launch({ args: [projectRoot], cwd: runtimeRoot });
+  const application = await electron.launch({
+    args: [`--user-data-dir=${join(runtimeRoot, "electron-data")}`, projectRoot],
+    cwd: runtimeRoot,
+  });
 
   try {
     await application.evaluate(
@@ -134,7 +137,10 @@ test("imports, groups, recycles and restores real NPK files", async () => {
   await writeFile(join(sourceRoot, "coat.npk"), "coat-payload");
   await writeFile(join(sourceRoot, "sword.npk"), "sword-payload");
   const sourcePaths = [join(sourceRoot, "coat.npk"), join(sourceRoot, "sword.npk")];
-  const application = await electron.launch({ args: [projectRoot], cwd: runtimeRoot });
+  const application = await electron.launch({
+    args: [`--user-data-dir=${join(runtimeRoot, "electron-data")}`, projectRoot],
+    cwd: runtimeRoot,
+  });
 
   try {
     await application.evaluate(({ shell }) => {
@@ -192,7 +198,8 @@ test("imports, groups, recycles and restores real NPK files", async () => {
     await expect(page.getByRole("button", { name: "自定义", exact: true })).toHaveCount(0);
 
     await page.getByRole("button", { name: "回收站", exact: true }).click();
-    await expect(page.getByRole("heading", { name: "回收站" })).toBeVisible();
+    // 回收站视图没有可见标题，用工作区自身的 aria-label 断言已切换到该视图
+    await expect(page.getByRole("main", { name: "回收站" })).toBeVisible();
     const restoreButtons = page.getByRole("button", { name: "恢复", exact: true });
     await expect(restoreButtons).toHaveCount(2);
     await restoreButtons.first().click();
@@ -230,7 +237,10 @@ test("changes a patch preview from inside a virtual group", async () => {
     writeFile(join(libraryRoot, "b.npk"), "b-payload"),
     writeFile(join(libraryRoot, "a.png"), oldBytes),
   ]);
-  const application = await electron.launch({ args: [projectRoot], cwd: runtimeRoot });
+  const application = await electron.launch({
+    args: [`--user-data-dir=${join(runtimeRoot, "electron-data")}`, projectRoot],
+    cwd: runtimeRoot,
+  });
 
   try {
     await application.evaluate(({ dialog }, filePath) => {
@@ -289,7 +299,10 @@ test("renames a patch inline with F2 and Enter", async () => {
   const newPath = join(libraryRoot, "coat-renamed.npk");
   await mkdir(libraryRoot, { recursive: true });
   await writeFile(oldPath, "coat-payload");
-  const application = await electron.launch({ args: [projectRoot], cwd: runtimeRoot });
+  const application = await electron.launch({
+    args: [`--user-data-dir=${join(runtimeRoot, "electron-data")}`, projectRoot],
+    cwd: runtimeRoot,
+  });
 
   try {
     const page = await application.firstWindow();
@@ -319,7 +332,10 @@ test("dissolves a patch group directly from its context menu", async () => {
     writeFile(join(libraryRoot, "coat.npk"), "coat-payload"),
     writeFile(join(libraryRoot, "sword.npk"), "sword-payload"),
   ]);
-  const application = await electron.launch({ args: [projectRoot], cwd: runtimeRoot });
+  const application = await electron.launch({
+    args: [`--user-data-dir=${join(runtimeRoot, "electron-data")}`, projectRoot],
+    cwd: runtimeRoot,
+  });
 
   try {
     const page = await application.firstWindow();
@@ -355,7 +371,10 @@ test("adds a patch card to a logical group", async () => {
     writeFile(join(libraryRoot, "sword.npk"), "sword-payload"),
     writeFile(join(libraryRoot, "hat.npk"), "hat-payload"),
   ]);
-  const application = await electron.launch({ args: [projectRoot], cwd: runtimeRoot });
+  const application = await electron.launch({
+    args: [`--user-data-dir=${join(runtimeRoot, "electron-data")}`, projectRoot],
+    cwd: runtimeRoot,
+  });
 
   try {
     const page = await application.firstWindow();
@@ -395,7 +414,10 @@ test("keeps an inline rename editor inside the card name area", async () => {
   const libraryRoot = join(runtimeRoot, "patch-categories");
   await mkdir(libraryRoot, { recursive: true });
   await writeFile(join(libraryRoot, "coat.npk"), "coat-payload");
-  const application = await electron.launch({ args: [projectRoot], cwd: runtimeRoot });
+  const application = await electron.launch({
+    args: [`--user-data-dir=${join(runtimeRoot, "electron-data")}`, projectRoot],
+    cwd: runtimeRoot,
+  });
 
   try {
     const page = await application.firstWindow();
@@ -435,12 +457,17 @@ test("opens move destinations from the context-menu hover submenu", async () => 
   const newPath = join(libraryRoot, "分类A", "coat.npk");
   await mkdir(join(libraryRoot, "分类A"), { recursive: true });
   await mkdir(nestedCategory, { recursive: true });
+  // 游戏根目录校验要求 ImagePacks2 / SoundPacks / video 三个子目录全部存在
   await Promise.all([
     mkdir(join(gameRoot, "ImagePacks2"), { recursive: true }),
     mkdir(join(gameRoot, "SoundPacks"), { recursive: true }),
+    mkdir(join(gameRoot, "video"), { recursive: true }),
   ]);
   await writeFile(oldPath, "coat-payload");
-  const application = await electron.launch({ args: [projectRoot], cwd: runtimeRoot });
+  const application = await electron.launch({
+    args: [`--user-data-dir=${join(runtimeRoot, "electron-data")}`, projectRoot],
+    cwd: runtimeRoot,
+  });
 
   try {
     const page = await application.firstWindow();
@@ -547,7 +574,10 @@ test("moves a patch into a nested category without a game directory", async () =
   const newPath = join(targetCategory, "coat.npk");
   await mkdir(targetCategory, { recursive: true });
   await writeFile(oldPath, "coat-payload");
-  const application = await electron.launch({ args: [projectRoot], cwd: runtimeRoot });
+  const application = await electron.launch({
+    args: [`--user-data-dir=${join(runtimeRoot, "electron-data")}`, projectRoot],
+    cwd: runtimeRoot,
+  });
 
   try {
     const page = await application.firstWindow();
@@ -593,7 +623,10 @@ test("keeps every folder move target selectable for a descendant patch", async (
   const childRoot = join(parentRoot, childName);
   await mkdir(childRoot, { recursive: true });
   await writeFile(join(childRoot, "coat.npk"), "coat-payload");
-  const application = await electron.launch({ args: [projectRoot], cwd: runtimeRoot });
+  const application = await electron.launch({
+    args: [`--user-data-dir=${join(runtimeRoot, "electron-data")}`, projectRoot],
+    cwd: runtimeRoot,
+  });
 
   try {
     const page = await application.firstWindow();
@@ -643,7 +676,10 @@ test("moves from a nested category to another root category", async () => {
   await mkdir(sourceCategory, { recursive: true });
   await mkdir(targetCategory, { recursive: true });
   await writeFile(oldPath, "coat-payload");
-  const application = await electron.launch({ args: [projectRoot], cwd: runtimeRoot });
+  const application = await electron.launch({
+    args: [`--user-data-dir=${join(runtimeRoot, "electron-data")}`, projectRoot],
+    cwd: runtimeRoot,
+  });
 
   try {
     const page = await application.firstWindow();
@@ -674,8 +710,13 @@ test("moves from a nested category to another root category", async () => {
       .toBe(true);
     await expect(access(oldPath)).rejects.toMatchObject({ code: "ENOENT" });
     await expect(readFile(newPath, "utf8")).resolves.toBe("coat-payload");
-    await expect(page.getByRole("button", { name: "Other", exact: true })).toContainText("1");
-    await expect(page.getByRole("button", { name: "Male", exact: true })).toContainText("0");
+    // 空分类不渲染计数徽标（25186d4 起），只有非空分类能读到数字
+    await expect(
+      page.getByRole("button", { name: "Other", exact: true }).locator(".category-count"),
+    ).toHaveText("1");
+    await expect(
+      page.getByRole("button", { name: "Male", exact: true }).locator(".category-count"),
+    ).toHaveCount(0);
   } finally {
     await application.close();
     await rm(runtimeRoot, { force: true, recursive: true, maxRetries: 5, retryDelay: 100 });
@@ -690,7 +731,10 @@ test("reorders real categories and persists their parent-scoped order", async ()
     mkdir(join(runtimeRoot, "patch-categories", "Category A"), { recursive: true }),
     mkdir(join(runtimeRoot, "patch-categories", "Category B"), { recursive: true }),
   ]);
-  const application = await electron.launch({ args: [projectRoot], cwd: runtimeRoot });
+  const application = await electron.launch({
+    args: [`--user-data-dir=${join(runtimeRoot, "electron-data")}`, projectRoot],
+    cwd: runtimeRoot,
+  });
 
   try {
     const page = await application.firstWindow();
@@ -743,7 +787,10 @@ test("moves a nested category into another category from the tree", async () => 
     writeFile(join(sourceCategory, "male.npk"), "male-payload"),
     writeFile(join(nestedCategory, "nested.npk"), "nested-payload"),
   ]);
-  const application = await electron.launch({ args: [projectRoot], cwd: runtimeRoot });
+  const application = await electron.launch({
+    args: [`--user-data-dir=${join(runtimeRoot, "electron-data")}`, projectRoot],
+    cwd: runtimeRoot,
+  });
 
   try {
     const page = await application.firstWindow();
@@ -857,7 +904,10 @@ test("moves a nested category out to the root with the blank drop zone", async (
 test("creates categories and deletes empty categories with Delete", async () => {
   const projectRoot = resolve(import.meta.dirname, "../..");
   const runtimeRoot = await mkdtemp(join(tmpdir(), "dnf-category-commands-e2e-"));
-  const application = await electron.launch({ args: [projectRoot], cwd: runtimeRoot });
+  const application = await electron.launch({
+    args: [`--user-data-dir=${join(runtimeRoot, "electron-data")}`, projectRoot],
+    cwd: runtimeRoot,
+  });
 
   try {
     const page = await application.firstWindow();
@@ -905,7 +955,10 @@ test("shows all descendant patches and direct category counts", async () => {
     writeFile(join(cloth, "top.npk"), "top"),
     writeFile(join(cloth, "bottom.npk"), "bottom"),
   ]);
-  const application = await electron.launch({ args: [projectRoot], cwd: runtimeRoot });
+  const application = await electron.launch({
+    args: [`--user-data-dir=${join(runtimeRoot, "electron-data")}`, projectRoot],
+    cwd: runtimeRoot,
+  });
 
   try {
     const page = await application.firstWindow();

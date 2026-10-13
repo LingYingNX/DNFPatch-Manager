@@ -1,4 +1,4 @@
-import { Archive, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { RecycleEntryDto } from "../../shared/ipc-contracts";
 import type { SelectionModifiers } from "../workspace/useItemSelection";
@@ -7,6 +7,7 @@ import { CommandButton } from "./primitives";
 
 type RecycleBinOperations = {
   readonly deleteRecycleItems: (entries: readonly RecycleEntryDto[]) => Promise<boolean>;
+  readonly restoreRecycleItems: (entries: readonly RecycleEntryDto[]) => Promise<boolean>;
 };
 
 type RecycleBinWorkspaceProps = {
@@ -88,6 +89,15 @@ export function RecycleBinWorkspace({
     setSubmitting(true);
     try {
       await operations.deleteRecycleItems(entries);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const restoreEntries = async (entries: readonly RecycleEntryDto[]): Promise<void> => {
+    setSubmitting(true);
+    try {
+      await operations.restoreRecycleItems(entries);
     } finally {
       setSubmitting(false);
     }
@@ -183,24 +193,38 @@ export function RecycleBinWorkspace({
                     });
                   }}
                 >
-                  <span>
+                  <span className="recycle-row-label">
                     <strong>{entry.originalRelativePath}</strong>
                     <small>
                       {entry.kind === "group" ? "补丁组" : "补丁"}
                       {entry.size === null ? "" : ` · ${formatRecycleSize(entry.size)}`}
                     </small>
                   </span>
-                  <CommandButton
-                    disabled={submitting}
-                    className="recycle-row-delete"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      void deleteEntries([entry]);
-                    }}
-                    variant="ghost"
-                  >
-                    删除
-                  </CommandButton>
+                  <span className="recycle-row-actions">
+                    <CommandButton
+                      disabled={submitting}
+                      className="recycle-row-restore"
+                      icon={<ArchiveRestore size={15} />}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void restoreEntries([entry]);
+                      }}
+                      variant="ghost"
+                    >
+                      恢复
+                    </CommandButton>
+                    <CommandButton
+                      disabled={submitting}
+                      className="recycle-row-delete"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void deleteEntries([entry]);
+                      }}
+                      variant="ghost"
+                    >
+                      删除
+                    </CommandButton>
+                  </span>
                 </li>
               );
             })}
@@ -222,6 +246,11 @@ export function RecycleBinWorkspace({
       {contextMenu === null ? null : (
         <ContextMenu
           actions={[
+            {
+              icon: <ArchiveRestore size={16} />,
+              label: "恢复",
+              onClick: () => void restoreEntries(contextMenu.entries),
+            },
             {
               icon: <Trash2 size={16} />,
               kind: "delete" as const,

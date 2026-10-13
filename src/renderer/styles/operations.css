@@ -164,6 +164,13 @@
   background: color-mix(in srgb, var(--color-warning) 12%, var(--color-elevated));
 }
 
+.recycle-row-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: none;
+}
+
 .recycle-row-delete {
   border: 1px solid color-mix(in srgb, var(--color-error) 38%, transparent);
   color: var(--color-text-primary);
@@ -179,7 +186,22 @@
   background: color-mix(in srgb, var(--color-canvas) 80%, var(--color-error) 20%);
 }
 
-.recycle-list li > span {
+.recycle-row-restore {
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-primary);
+  height: var(--compact-control);
+  padding: 0 10px;
+  background: var(--color-elevated);
+  font-size: var(--font-sm);
+}
+
+.recycle-row-restore:hover:not(:disabled),
+.recycle-row-restore:focus-visible {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-elevated) 88%, var(--color-accent) 12%);
+}
+
+.recycle-row-label {
   display: grid;
   min-width: 0;
   gap: 3px;

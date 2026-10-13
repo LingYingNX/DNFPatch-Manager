@@ -105,6 +105,26 @@ describe("recycle bin", () => {
     await waitFor(() => expect(deletedIds).toEqual(["a2021aa5-e024-4106-a0a3-f0874d4c9ec9"]));
   });
 
+  it("restores a recycled item back to its original path", async () => {
+    const restoredIds: string[] = [];
+    const api: DnfApi = {
+      ...createFakeApi(WORKSPACE_SNAPSHOT),
+      listRecycle: async () => ({ ok: true, value: { items: [RECYCLED_COAT] } }),
+      restoreItem: async ({ id }) => {
+        restoredIds.push(id);
+        return { ok: true, value: { relativePath: RECYCLED_COAT.originalRelativePath } };
+      },
+    };
+    render(<App api={api} />);
+    await screen.findByText("coat.npk");
+    fireEvent.click(screen.getByRole("button", { name: "回收站" }));
+    await screen.findByText("分类A\\coat.npk");
+
+    fireEvent.click(screen.getByRole("button", { name: "恢复" }));
+
+    await waitFor(() => expect(restoredIds).toEqual([RECYCLED_COAT.id]));
+  });
+
   it("renders no context menu until one is requested", async () => {
     render(<App api={createFakeApi(WORKSPACE_SNAPSHOT)} />);
     await screen.findByText("coat.npk");
