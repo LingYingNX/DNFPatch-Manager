@@ -13,7 +13,10 @@ test("imports and renders the supplied wallpaper across supported viewports", as
     : join(projectRoot, "前端", "screenshots", "cover.png");
   const screenshotRoot = join(projectRoot, ".scratch", "appearance");
   await mkdir(screenshotRoot, { recursive: true });
-  const application = await electron.launch({ args: [projectRoot], cwd: runtimeRoot });
+  const application = await electron.launch({
+    args: [`--user-data-dir=${join(runtimeRoot, "electron-data")}`, projectRoot],
+    cwd: runtimeRoot,
+  });
 
   try {
     await application.evaluate(({ dialog }, selectedPath) => {
@@ -23,7 +26,8 @@ test("imports and renders the supplied wallpaper across supported viewports", as
     await page.getByRole("button", { name: "调整外观" }).click();
     const appearanceDialog = page.getByRole("dialog", { name: "调整外观" });
     const opacity = page.getByRole("slider", { name: "透明度" });
-    const scale = page.getByRole("slider", { name: "缩放" });
+    // exact：卡片缩放滑块的 aria-label 是「补丁卡片缩放」，子串匹配会同时命中两个 slider
+    const scale = page.getByRole("slider", { name: "缩放", exact: true });
     const positionY = page.getByRole("slider", { name: "上下移动" });
     await opacity.press("End");
     await scale.press("Home");
@@ -170,7 +174,9 @@ test("imports and renders the supplied wallpaper across supported viewports", as
       .toEqual({ theme: "glass", sidebar: "none", workspace: "none" });
     await page.getByRole("button", { name: "字体外观" }).click();
     await expect(page.getByRole("combobox")).toHaveCount(0);
-    await expect(page.locator(".appearance-font-color-bar")).toHaveCount(2);
+    // 字体外观改成「目标标签页 + 取色器」后，两个颜色目标仍应各有一个标签页
+    await expect(page.locator(".appearance-font-tab")).toHaveCount(2);
+    await expect(page.locator(".appearance-font-color-picker")).toBeVisible();
     // 字体外观��版回归：颜色设置不得被挤出可视区，右栏无边框，全框只剩一根竖线
     await page.setViewportSize({ width: 1280, height: 720 });
     const fontColors = page.locator(".appearance-font-colors");

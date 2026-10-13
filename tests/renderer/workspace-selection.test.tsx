@@ -76,6 +76,23 @@ describe("workspace selection", () => {
     expect(group).toHaveAttribute("aria-pressed", "false");
   });
 
+  it("waits for the drag to pass the slop before box-selecting cards", async () => {
+    render(<App api={createFakeApi(WORKSPACE_SNAPSHOT)} />);
+    await screen.findByText("coat.npk");
+    const coat = itemButton("coat.npk");
+    coat.getBoundingClientRect = () => new DOMRect(0, 0, 100, 100);
+    const workspace = screen.getByRole("main", { name: "补丁工作区" });
+
+    fireEvent.pointerDown(workspace, { clientX: 10, clientY: 10, pointerId: 1 });
+    // 三像素以内的抖动是双击，不是拖拽：这时不能改选中，否则卡片左上角预览按钮的
+    // 双击换图会被框选吃掉。
+    fireEvent.pointerMove(workspace, { clientX: 11, clientY: 11, pointerId: 1 });
+    expect(coat).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.pointerMove(workspace, { clientX: 60, clientY: 60, pointerId: 1 });
+    expect(coat).toHaveAttribute("aria-pressed", "true");
+  }, 15_000);
+
   it("selects cards when drag starts in empty patch workspace space", async () => {
     render(<App api={createFakeApi(WORKSPACE_SNAPSHOT)} />);
     await screen.findByText("coat.npk");

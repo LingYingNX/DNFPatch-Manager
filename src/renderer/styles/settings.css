@@ -474,8 +474,8 @@
 
 .settings-support-icon {
   display: grid;
-  width: 32px;
-  height: 32px;
+  width: var(--size-sm);
+  height: var(--size-sm);
   flex: 0 0 auto;
   place-items: center;
   border: 1px solid color-mix(in srgb, var(--support-accent) 72%, transparent);
@@ -660,7 +660,7 @@
 
 .appearance-panel-header {
   display: flex;
-  min-height: 22px;
+  min-height: var(--size-xs);
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
@@ -819,8 +819,8 @@
 }
 
 .appearance-font-color-swatch {
-  width: 40px;
-  height: 32px;
+  width: var(--size-md);
+  height: var(--size-sm);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-control);
 }
@@ -828,7 +828,7 @@
 .appearance-font-color-value input {
   width: 100%;
   min-width: 0;
-  height: 32px;
+  height: var(--size-sm);
   padding: 0 12px;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-control);
@@ -841,9 +841,9 @@
 
 .appearance-color-reset {
   display: flex;
-  width: 32px;
-  height: 32px;
-  flex: 0 0 32px;
+  width: var(--size-sm);
+  height: var(--size-sm);
+  flex: 0 0 var(--size-sm);
   align-items: center;
   justify-content: center;
   padding: 0;
@@ -991,70 +991,11 @@
 }
 
 .appearance-color-alpha output {
-  min-width: 32px;
+  min-width: var(--size-sm);
   color: var(--color-text-primary);
   font-family: "Cascadia Mono", Consolas, monospace;
   font-size: var(--font-xs);
   text-align: right;
-}
-
-.appearance-font-color-bar-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 8px;
-}
-
-.appearance-font-color-bar {
-  position: relative;
-  height: 14px;
-  overflow: hidden;
-  border-radius: var(--radius-pill);
-  background: var(--hue-ring-gradient);
-  cursor: default;
-  touch-action: none;
-}
-
-.appearance-font-color-bar:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 3px;
-}
-
-.appearance-font-color-reset {
-  display: grid;
-  width: 28px;
-  height: var(--compact-control);
-  place-items: center;
-  padding: 0;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
-  color: var(--color-text-secondary);
-  background: var(--color-elevated);
-  cursor: pointer;
-}
-
-.appearance-font-color-reset:hover,
-.appearance-font-color-reset:focus-visible {
-  border-color: var(--color-primary);
-  color: var(--color-text-primary);
-  outline: none;
-}
-
-.appearance-font-color-reset svg {
-  width: 15px;
-  height: 15px;
-}
-
-.appearance-font-color-bar-marker {
-  position: absolute;
-  top: 50%;
-  width: 18px;
-  height: 18px;
-  border: 2px solid var(--color-text-primary);
-  border-radius: 50%;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
-  pointer-events: none;
-  transform: translate(-50%, -50%);
 }
 
 .appearance-theme-grid {
@@ -1382,7 +1323,7 @@
 .appearance-control-row {
   display: grid;
   grid-template-columns: 50px minmax(60px, 1fr) 24px;
-  height: 22px;
+  height: var(--size-xs);
   align-items: center;
   gap: 8px;
   color: var(--color-text-secondary);

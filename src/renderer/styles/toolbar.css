@@ -71,7 +71,7 @@
   grid-template-columns: auto minmax(0, 1fr) auto;
   min-width: 260px;
   max-width: min(400px, calc(100vw - 240px));
-  height: 40px;
+  height: var(--size-md);
   align-items: center;
   gap: 9px;
   padding: 0 13px 0 8px;
@@ -97,8 +97,8 @@
 .window-titlebar-update-notice-close {
   pointer-events: auto;
   display: grid;
-  width: 22px;
-  height: 22px;
+  width: var(--size-xs);
+  height: var(--size-xs);
   place-items: center;
   border: none;
   border-radius: var(--radius-control);
@@ -162,7 +162,7 @@
 
 .window-control-button {
   display: grid;
-  width: 40px;
+  width: var(--size-md);
   height: var(--window-titlebar-height);
   place-items: center;
   padding: 0;
@@ -267,24 +267,25 @@
   font-family: "Cascadia Mono", Consolas, monospace;
 }
 
+/* 搜索框：凹槽式文本输入。底色比表面亮一档形成凹陷，2px 实线描边在聚焦时换成中性
+   蓝灰。聚焦刻意不用 --color-primary：工具栏里品牌紫专指「当前选中」，输入框只是容器，
+   用同一色会让同屏出现两个同色环。也刻意不叠半透明外发光：2px 实线描边本身就是焦点
+   指示，再罩一层 3px 光晕只会把边缘糊虚，看起来像两层边。 */
 .search-field {
   width: min(100%, 540px);
   height: var(--control-height);
   gap: 9px;
   justify-self: center;
-  padding: 0 var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-control);
+  padding: 0 var(--space-4);
+  border: 2px solid var(--color-field-border);
+  border-radius: var(--radius-panel);
   color: var(--color-text-secondary);
-  background: var(--color-surface);
-  transition:
-    border-color var(--motion-standard) var(--easing-standard),
-    box-shadow var(--motion-standard) var(--easing-standard);
+  background: var(--color-field-surface);
+  transition: border-color var(--motion-fast) var(--easing-standard);
 }
 
 .search-field:focus-within {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-focus);
+  border-color: var(--color-field-border-focus);
 }
 
 .search-field input {
@@ -294,6 +295,9 @@
   font: inherit;
   border: 0;
   outline: 0;
+  /* 焦点由外层 .search-field 的焦点描边统一表达。不写这一行，tokens.css 里
+     `input:focus-visible` 的 3px 环会在搜索框内部再画一圈，出现双层光圈。 */
+  box-shadow: none;
   color: var(--color-text-primary);
   background: transparent;
 }
@@ -304,24 +308,20 @@
   color: var(--color-text-secondary);
 }
 
-/* 视图切换与搜索框同处工具栏一行：共用 36px 高度、标准圆角、surface 底、
-   边框加 focus 光环，选中态沿用全局的 inset 线框语言。
-   原先的纯黑底与 translateX(-4px) 是为旁边 2.7em 高的搜索框单独配的偏移。 */
+/* 视图切换：凹槽轨道 + 选中块。
+   状态分工——轨道底色是容器；未聚焦时选中块用淡紫填充 + 紫 inset 线框（沿用全站「选中」语言）；
+   键盘焦点用蓝灰 outline（沿用输入框的「焦点」语言）。两个状态不同色相，同屏不会看混。
+   此前容器 focus-within 画紫环、按钮又画紫 inset 环，点一下就是两个紫环叠着。 */
 .view-mode-control {
   display: flex;
   height: var(--control-height);
   align-items: center;
   gap: 2px;
   margin: 0;
-  padding: 0;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-control);
-  background: var(--color-surface);
-}
-
-.view-mode-control:focus-within {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-focus);
+  padding: 2px;
+  border: 1px solid var(--color-field-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-field-surface);
 }
 
 .view-mode-control button {
@@ -341,15 +341,33 @@
     box-shadow var(--motion-fast) var(--easing-standard);
 }
 
+.view-mode-control button:focus-visible {
+  /* 焦点是蓝灰、选中是紫，两者不同色相，同屏也不会看混。
+     offset 取 0：轨道内边距和分段间隙都只有 2px，offset 1px 的 2px 环会压进相邻分段 1px。 */
+  outline: 2px solid var(--color-field-border-focus);
+  outline-offset: 0;
+  /* 清掉 tokens.css 里全局 `button:focus-visible` 的 3px 紫环，否则叠成双环。 */
+  box-shadow: none;
+}
+
 .view-mode-control button:hover:not([aria-pressed="true"]) {
   color: var(--color-text-primary);
-  background: var(--color-elevated);
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-field-surface));
 }
 
 .view-mode-control button[aria-pressed="true"] {
   color: var(--color-text-primary);
-  background: var(--color-elevated);
+  /* 选中块必须比轨道「亮」，用淡紫填充而不是更暗的 --color-elevated：
+     后者在 field-surface 上会显得像被按下去了。 */
+  background: color-mix(in srgb, var(--color-primary) 22%, var(--color-field-surface));
   box-shadow: inset 0 0 0 var(--selection-ring-selected-width) var(--selection-ring-color);
+}
+
+.view-mode-control button[aria-pressed="true"]:focus-visible {
+  /* 键盘焦点落在选中块上时只留一圈：紫环让位给蓝环，选中改由更亮的填充承担。
+     30px 的小分段上紫、蓝两圈并排必被读成一条双色粗边，正是要修掉的双环。 */
+  background: color-mix(in srgb, var(--color-primary) 34%, var(--color-field-surface));
+  box-shadow: none;
 }
 
 .view-mode-control button:active {

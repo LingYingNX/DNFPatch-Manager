@@ -67,7 +67,6 @@ export function useAppearance(
       "--wallpaper-temperature-filter",
       `sepia(${temperatureMagnitude * 0.35}) hue-rotate(${temperatureHue}deg)`,
     );
-    root.style.setProperty("--category-text-color", appearance.categoryTextColor);
     root.style.setProperty("--selected-tint", appearance.selectedTint);
     root.style.setProperty("--navigation-font-color", navigationFontColor);
     root.style.setProperty("--patch-card-font-color", patchCardFontColor);

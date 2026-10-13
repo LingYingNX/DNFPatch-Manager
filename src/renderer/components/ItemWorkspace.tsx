@@ -160,6 +160,9 @@ type ContextMenuState = {
 const CARD_SCALE_MIN = 80;
 const CARD_SCALE_MAX = 140;
 const CARD_SCALE_STEP = 5;
+// 框选起步的死区：指针抖几像素不该算拖拽。越不过死区就不捕获指针，卡片左上角预览
+// 按钮的双击才有机会落地——一旦捕获，pointerup/click/dblclick 全被改派到工作区根节点。
+const SELECTION_DRAG_SLOP = 3;
 
 export function ItemWorkspace(props: ItemWorkspaceProps): React.JSX.Element {
   const [cardScale, setCardScale] = useState(100);
@@ -172,6 +175,7 @@ export function ItemWorkspace(props: ItemWorkspaceProps): React.JSX.Element {
     readonly submitting: boolean;
   } | null>(null);
   const renameInputRef = useRef<HTMLInputElement | null>(null);
+  const selectionDragArmedRef = useRef(false);
   const renamePath = renameState === null ? undefined : workspaceItemKey(renameState.item);
   const cardScaleEnabled = props.viewMode === "grid";
   const effectiveCardScale = cardScaleEnabled ? cardScale : CARD_SCALE_MAX;
@@ -230,11 +234,25 @@ export function ItemWorkspace(props: ItemWorkspaceProps): React.JSX.Element {
     }
   };
 
+  const endSelection = (): void => {
+    selectionDragArmedRef.current = false;
+    setSelectionBox(null);
+  };
+
   const updateBox = (event: React.PointerEvent<HTMLElement>): void => {
     if (selectionBox === null) {
       return;
     }
     const next = { ...selectionBox, currentX: event.clientX, currentY: event.clientY };
+    if (!selectionDragArmedRef.current) {
+      const movedX = Math.abs(next.currentX - next.startX);
+      const movedY = Math.abs(next.currentY - next.startY);
+      if (movedX <= SELECTION_DRAG_SLOP && movedY <= SELECTION_DRAG_SLOP) {
+        return;
+      }
+      selectionDragArmedRef.current = true;
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+    }
     setSelectionBox(next);
     const paths = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(".item-card"))
       .filter((element) => intersects(next, element.getBoundingClientRect()))
@@ -358,7 +376,7 @@ export function ItemWorkspace(props: ItemWorkspaceProps): React.JSX.Element {
           return;
         }
         event.preventDefault();
-        event.currentTarget.setPointerCapture?.(event.pointerId);
+        selectionDragArmedRef.current = false;
         setSelectionBox({
           currentX: event.clientX,
           currentY: event.clientY,
@@ -368,8 +386,8 @@ export function ItemWorkspace(props: ItemWorkspaceProps): React.JSX.Element {
         props.onBoxSelect([]);
       }}
       onPointerMove={updateBox}
-      onPointerUp={() => setSelectionBox(null)}
-      onPointerCancel={() => setSelectionBox(null)}
+      onPointerUp={endSelection}
+      onPointerCancel={endSelection}
       onDragOver={(event) => event.preventDefault()}
       onDrop={(event) => {
         event.preventDefault();
@@ -438,17 +456,19 @@ export function ItemWorkspace(props: ItemWorkspaceProps): React.JSX.Element {
               aria-label="网格视图"
               aria-pressed={props.viewMode === "grid"}
               onClick={() => props.onViewModeChange("grid")}
+              title="网格视图"
               type="button"
             >
-              <Grid2X2 size={15} />
+              <Grid2X2 aria-hidden="true" size={15} />
             </button>
             <button
               aria-label="列表视图"
               aria-pressed={props.viewMode === "list"}
               onClick={() => props.onViewModeChange("list")}
+              title="列表视图"
               type="button"
             >
-              <List size={16} />
+              <List aria-hidden="true" size={16} />
             </button>
           </fieldset>
           {props.showDescendantToggle ? (

@@ -287,7 +287,7 @@
 .category-expand,
 .category-expand-spacer {
   width: var(--category-toggle-size);
-  height: 32px;
+  height: var(--size-sm);
   flex: 0 0 var(--category-toggle-size);
 }
 
@@ -399,7 +399,7 @@
 }
 
 .category-tree .category-node-line {
-  min-height: 32px;
+  min-height: var(--size-sm);
 }
 
 .sidebar-system-nav :where(.category-row > span) {
@@ -624,8 +624,8 @@
 }
 
 .category-style-preview {
-  width: 22px;
-  height: 22px;
+  width: var(--size-xs);
+  height: var(--size-xs);
   background-color: var(--color-primary);
   mask-position: center;
   mask-repeat: no-repeat;
@@ -790,9 +790,9 @@
 
 .preset-icon {
   display: grid;
-  width: 32px;
-  height: 32px;
-  flex: 0 0 32px;
+  width: var(--size-sm);
+  height: var(--size-sm);
+  flex: 0 0 var(--size-sm);
   place-items: center;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-control);
@@ -915,8 +915,9 @@
   justify-content: flex-start;
 }
 
-/* 工作区搜索框直接沿用 .search-field 的标准控件语言：36px 高、标准圆角、
-   surface 底、描边加 focus 光环。这里只收窄宽度，给视图切换与「包含子分类」让位。
+/* 工作区搜索框直接沿用 .search-field 的凹槽输入语言：2px 描边、8px 圆角、
+   field-surface 底、聚焦换蓝灰描边加外发光。这里只收窄宽度，给视图切换与
+   「包含子分类」让位。
    原先它是一套私有样式（2.7em 高、纯黑底、4px 圆角、青蓝墨水加悬停下划线动画），
    而它用的那两个色值在 tokens.css 的任何主题里都不存在——换个主题，整个工具栏
    就它一个不跟着走。 */

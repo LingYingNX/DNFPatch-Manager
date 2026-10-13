@@ -19,7 +19,17 @@
   --color-warning: #f5d547;
   --color-info: #3dd7e5;
   --color-error: #ff3a5c;
+  /* 补丁组的识别色：组卡片与列表行预览里的包图标。此前借用 --color-info，
+     同一个青色既表示「信息/提示」状态又表示「这是组」，两种含义撞在一起。 */
+  --color-group-accent: #f0a868;
   --color-focus: rgba(91, 107, 255, 0.35);
+  /* 文本输入与分段控件的凹槽语言：底比 --color-surface 亮一档形成凹陷，描边比
+     --color-border 亮但仍低于 --color-border-strong，聚焦描边是中性蓝灰。
+     聚焦时刻意不用 --color-primary：品牌紫留给「选中」这一个语义，
+     输入框和分段控件的轨道都只是容器状态，两者都用紫就会同屏出现两个同色环。 */
+  --color-field-surface: #222630;
+  --color-field-border: #2b3040;
+  --color-field-border-focus: #596a95;
   /* 滚动条强调色（默认主题的霓虹渐变）。这里存通道三元组而不是整色，因为
      侧栏与设置面板都要按悬停进度叠 alpha：rgb(var(--…-rgb) / calc(…))。 */
   --scrollbar-thumb-start-rgb: 244 63 94;
@@ -63,6 +73,14 @@
   /* 标题档：标题栏标题、设置页小标题与空状态主标题共用，
      比正文大一档、比卡片标题小一档。 */
   --font-heading: 15px;
+  /* 小尺寸方块阶梯：图标底板、色块、徽标最小高度、窗口按钮、提示条等共用的
+     固定尺寸。按尺寸而非角色命名，理由同 --radius-sm：这些位置的角色并不统一
+     （22px 同时是徽标最小高度与图标预览，40px 同时是提示条高度与色块宽度）。
+     只收出现 ≥4 次的高频档；24/26/28/36/52/54px 仍是散点，等出现第三处同值再收。 */
+  --size-xs: 22px;
+  --size-sm: 32px;
+  --size-md: 40px;
+  --size-lg: 44px;
   --control-height: 36px;
   --window-titlebar-height: 36px;
   --section-divider-width: 1.575px;
@@ -82,7 +100,6 @@
   --wallpaper-temperature-filter: sepia(0) hue-rotate(0deg);
   --appearance-saturation: 100%;
   --appearance-contrast: 100%;
-  --category-text-color: #9aa0ae;
   --selected-tint: #5b6bff;
   /* 全局选中/悬停线框语言：分类树、设置导航、外观对话框共用同一套，
      避免同一语义同时存在「填充 + 光晕」和「inset 线框」两种表达。 */
@@ -117,6 +134,16 @@
   --color-border-strong: #a0a0a0;
   --color-text-primary: #ffffff;
   --color-text-secondary: #d5d5d5;
+  /* 三级文字：这个主题换了画布（#151d2b → #000000）却没换三级文字，沿用的 #5c6170
+     是给深蓝底调的，在纯黑上只有 3.4:1，低于 WCAG AA 正文的 4.5:1 —— 一个叫「高
+     对比度」的主题，底部文字比它取代的默认主题还难读。 */
+  --color-text-tertiary: #909090;
+  /* 凹槽输入框：默认主题那组 #222630 / #2b3040 是给 #151d2b 画布配的，搬到纯黑上
+     只剩 1.39:1 的框底差与 1.15:1 的描边差，2px 描边等于没画。高对比主题的凹槽
+     必须真的看得见：底抬到 #1a1a1a，描边提到 --color-border-strong 那一档。 */
+  --color-field-surface: #1a1a1a;
+  --color-field-border: #a0a0a0;
+  --color-field-border-focus: #ffffff;
 }
 
 :root[data-theme="glass"] {
@@ -131,6 +158,12 @@
   --color-primary-hover: #b7d6ff;
   --color-primary-pressed: #5f97e4;
   --color-focus: rgba(128, 180, 255, 0.4);
+  /* 凹槽输入框：这个主题的底与描边都是半透明的，不透明的 #222630 会在壁纸上糊出
+     一块死色方块，正好破掉「透明玻璃」这个前提。底换成比 surface 更深的半透明，
+     描边沿用同族浅蓝。 */
+  --color-field-surface: rgba(6, 14, 26, 0.62);
+  --color-field-border: rgba(184, 216, 255, 0.26);
+  --color-field-border-focus: rgba(183, 214, 255, 0.78);
 }
 
 :root[data-theme="glass"] .app-shell {

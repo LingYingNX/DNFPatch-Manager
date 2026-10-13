@@ -104,7 +104,7 @@
    黑洞。「这张卡没有预览图」交给卡片中央的占位图标表达即可。 */
 
 .item-card[data-kind="group"] .item-preview {
-  color: var(--color-info);
+  color: var(--color-group-accent);
 }
 
 .item-preview-image {
@@ -214,8 +214,8 @@
   top: -10000px;
   left: -10000px;
   display: inline-flex;
-  width: 44px;
-  height: 44px;
+  width: var(--size-lg);
+  height: var(--size-lg);
   box-sizing: border-box;
   align-items: center;
   justify-content: center;
@@ -772,7 +772,7 @@
 
 .status-badge {
   width: fit-content;
-  min-height: 22px;
+  min-height: var(--size-xs);
   gap: 6px;
   padding: 0 var(--space-2);
   border: 1px solid var(--color-border);
@@ -875,7 +875,8 @@
 
 /* 占位图标从 tertiary 提到 secondary：底不再是纯黑，三级灰在 elevated 上只剩约
    2.5:1。放在所有预览图标规则之后——它是 (0, 3, 1)，写在前面会让后面更低的 svg
-   选择器触发 noDescendingSpecificity。只作用于 patch，组的图标仍用 --color-info。 */
+   选择器触发 noDescendingSpecificity。只作用于 patch，组的图标仍用
+   --color-group-accent（见本文件顶部的组识别色规则）。 */
 .item-card[data-kind="patch"] .item-preview-empty > svg {
   color: var(--color-text-secondary);
 }
@@ -946,24 +947,32 @@
   grid-column: 4;
 }
 
-.item-list .item-preview-hover-image {
+/* 列表行是整屏宽，200cqw 指到「两倍行宽」，与网格里「两倍卡片宽」不是一回事，
+   所以放大图必须在这里重新收窄。BK2 悬停播的是 video、NPK 放大看的是 img，
+   两者共用同一个放大位，尺寸规则必须成对写；只覆盖 image 会让 BK2 在列表下
+   按 200cqw 铺开（约两倍行宽），比缩略图大出一个数量级。 */
+.item-list .item-preview-hover-image,
+.item-list .item-preview-hover-video {
   width: calc((200cqw - 84px) / 4);
 }
 
 @container (max-width: 889px) {
-  .item-list .item-preview-hover-image {
+  .item-list .item-preview-hover-image,
+  .item-list .item-preview-hover-video {
     width: calc((200cqw - 56px) / 3);
   }
 }
 
 @container (max-width: 663px) {
-  .item-list .item-preview-hover-image {
+  .item-list .item-preview-hover-image,
+  .item-list .item-preview-hover-video {
     width: calc((200cqw - 28px) / 2);
   }
 }
 
 @container (max-width: 437px) {
-  .item-list .item-preview-hover-image {
+  .item-list .item-preview-hover-image,
+  .item-list .item-preview-hover-video {
     width: 200cqw;
   }
 }

@@ -9,7 +9,7 @@
 }
 
 .toast {
-  min-height: 44px;
+  min-height: var(--size-lg);
   gap: 8px;
   padding: 11px 10px 11px 13px;
   border: 1px solid var(--color-border-strong);
