@@ -31,10 +31,11 @@ test("keeps unrelated card switches enabled while one toggle is busy", async () 
   const runtimeRoot = await mkdtemp(join(tmpdir(), "dnf-switch-stability-e2e-"));
   const sourceRoot = join(runtimeRoot, "sources");
   const gameRoot = join(runtimeRoot, "game");
-  // 游戏目录校验要求 ImagePacks2 / SoundPacks 子目录存在
+  // 游戏目录校验要求 ImagePacks2 / SoundPacks / video 三个子目录全部存在
   await Promise.all([
     mkdir(join(gameRoot, "ImagePacks2"), { recursive: true }),
     mkdir(join(gameRoot, "SoundPacks"), { recursive: true }),
+    mkdir(join(gameRoot, "video"), { recursive: true }),
     mkdir(sourceRoot, { recursive: true }),
   ]);
   await writeFile(join(sourceRoot, "coat.npk"), "coat-payload");

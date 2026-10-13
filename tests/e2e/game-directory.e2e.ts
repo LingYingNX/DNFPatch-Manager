@@ -32,15 +32,22 @@ test("persists the selected game directory across restart and toggles a real pat
   const gameRoot = join(runtimeRoot, "game");
   const secondGameRoot = join(runtimeRoot, "game-2");
   const screenshotRoot = join(projectRoot, ".scratch");
+  // 游戏根目录校验要求 ImagePacks2 / SoundPacks / video 三个子目录全部存在
+  const gameSubdirectories = ["ImagePacks2", "SoundPacks", "video"] as const;
   await Promise.all([
     mkdir(sourceRoot, { recursive: true }),
-    mkdir(gameRoot, { recursive: true }),
-    mkdir(secondGameRoot, { recursive: true }),
     mkdir(screenshotRoot, { recursive: true }),
+    ...[gameRoot, secondGameRoot].flatMap((root) =>
+      gameSubdirectories.map((name) => mkdir(join(root, name), { recursive: true })),
+    ),
   ]);
   await writeFile(join(sourceRoot, "coat.npk"), "coat-payload");
   const sourcePath = join(sourceRoot, "coat.npk");
-  const launch = () => electron.launch({ args: [projectRoot], cwd: runtimeRoot });
+  const launch = () =>
+    electron.launch({
+      args: [`--user-data-dir=${join(runtimeRoot, "electron-data")}`, projectRoot],
+      cwd: runtimeRoot,
+    });
   const application = await launch();
 
   try {
@@ -65,7 +72,7 @@ test("persists the selected game directory across restart and toggles a real pat
     const directoryInput = page.getByRole("textbox", { name: "游戏目录" });
     await page.getByRole("button", { name: "浏览", exact: true }).click();
     await expect(directoryInput).toHaveValue(gameRoot);
-    await page.locator(".dialog-backdrop-dismiss").click();
+    await page.locator(".dialog-backdrop-dismiss").click({ position: { x: 20, y: 450 } });
     await expect(page.locator(".app-toolbar")).toHaveCount(0);
     await page.screenshot({ path: join(screenshotRoot, "task-8-game-directory-1280.png") });
 
@@ -77,11 +84,13 @@ test("persists the selected game directory across restart and toggles a real pat
       .filter({ has: page.getByRole("checkbox", { name: "启用 coat.npk", exact: true }) })
       .click();
     await expect(page.getByRole("checkbox", { name: "停用 coat.npk", exact: true })).toBeChecked();
-    await expect(readFile(join(gameRoot, "coat.npk"), "utf8")).resolves.toBe("coat-payload");
+    await expect(readFile(join(gameRoot, "ImagePacks2", "coat.npk"), "utf8")).resolves.toBe(
+      "coat-payload",
+    );
     await page.getByRole("button", { name: "设置" }).click();
     await page.getByRole("button", { name: "浏览", exact: true }).click();
     await expect(page.getByRole("alert")).toHaveText("请先停用所有补丁，再更换游戏目录");
-    await page.locator(".dialog-backdrop-dismiss").click();
+    await page.locator(".dialog-backdrop-dismiss").click({ position: { x: 20, y: 450 } });
 
     await application.close();
     const restarted = await launch();
@@ -89,8 +98,10 @@ test("persists the selected game directory across restart and toggles a real pat
       const restartedPage = await restarted.firstWindow();
       await restartedPage.getByRole("button", { name: "设置" }).click();
       await expect(restartedPage.getByRole("textbox", { name: "游戏目录" })).toHaveValue(gameRoot);
-      await restartedPage.locator(".dialog-backdrop-dismiss").click();
-      await rm(join(gameRoot, "coat.npk"));
+      await restartedPage
+        .locator(".dialog-backdrop-dismiss")
+        .click({ position: { x: 20, y: 450 } });
+      await rm(join(gameRoot, "ImagePacks2", "coat.npk"));
       await restartedPage
         .locator("label.switch")
         .filter({
@@ -101,7 +112,9 @@ test("persists the selected game directory across restart and toggles a real pat
         restartedPage.getByRole("checkbox", { name: "启用 coat.npk", exact: true }),
       ).not.toBeChecked();
       await expect(restartedPage.locator(".toast-viewport")).toHaveCount(0);
-      await expect(access(join(gameRoot, "coat.npk"))).rejects.toMatchObject({ code: "ENOENT" });
+      await expect(access(join(gameRoot, "ImagePacks2", "coat.npk"))).rejects.toMatchObject({
+        code: "ENOENT",
+      });
     } finally {
       await restarted.close();
     }

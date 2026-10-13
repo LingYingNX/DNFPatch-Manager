@@ -8,7 +8,10 @@ test("renders the community entries within the settings dialog", async () => {
   const runtimeRoot = await mkdtemp(join(tmpdir(), "dnf-settings-support-e2e-"));
   const screenshotRoot = join(projectRoot, ".scratch", "settings-support");
   await mkdir(screenshotRoot, { recursive: true });
-  const application = await electron.launch({ args: [projectRoot], cwd: runtimeRoot });
+  const application = await electron.launch({
+    args: [`--user-data-dir=${join(runtimeRoot, "electron-data")}`, projectRoot],
+    cwd: runtimeRoot,
+  });
 
   try {
     const page = await application.firstWindow();

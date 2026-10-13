@@ -76,3 +76,6 @@ pnpm test:e2e
 - **BK2 预览生成测试必须注入转换器桩**，不要在测试机真实调用 `bink2nvenc.exe` / `radvideo64.exe` / `ffmpeg.exe`：外部工具是否存在因机而异，真实调用会让测试在无工具的机器上恒红。用 `resolveVideoPreviewTools` 的依赖注入替代，断言文件命名与降级路径（ERR-20261009-003 / ERR-20261010-001）。
 - **协议层测试要覆盖 200/206/416**：`dnf-library:` 的 MP4 响应依赖 byte-range，`tests/integration/library-preview-protocol.test.ts` 覆盖三种响应码；改 `src/main/managed-asset-protocol.ts` 时先看这里。
 - `tests/unit/media-scheme-contracts.test.ts` 是 scheme 与 CSP 一致性的守卫：改 `src/main/library-schemes.ts` 或 `src/renderer/index.html` 的 CSP 必须同步它，否则悬停播放静默失效（ERR-20261009-004）。
+- **e2e 的游戏根目录 fixture 必须建齐 `ImagePacks2` / `SoundPacks` / `video` 三个子目录**：`src/main/ipc/game-directory-ipc.ts:37` 的 `assertGameRootHasSubdirectories` 要求三者齐全，缺任何一个 `selectGameDirectory` 都返回 `{ ok: false }`，测试只会看到 poll 超时而不报缺哪个子目录。补丁按种类写进对应子目录（`src/core/install/enable-install-items.ts:90-98`），所以期望路径也要带上子目录。
+- **点 `Dialog` 背景关弹窗时 `click` 的落点不能是面板中心**：`src/renderer/components/Dialog.tsx:83` 的 `.dialog-backdrop-dismiss` 铺满窗口，中间被面板盖住，Playwright 会报「面板子树拦截指针事件」并等满 30s 超时；用靠边的 `position` 落点（如 `{ x: 20, y: 450 }`）。
+- **空分类不渲染计数徽标**：`src/renderer/components/CategoryTree.tsx:312-313` 在 `patchCount === 0` 时返回 null（25186d4 `style: 优化侧栏滚动条和空分类计数`），侧栏行的可见文本就是分类名，断言写 `["Alpha", "Middle", "Zeta"]` 而不是 `["Alpha0", …]`；只有非空分类才有 `.category-count`，要断言计数就定位 `.category-count` 本身。

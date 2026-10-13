@@ -48,17 +48,24 @@ test("persists, additively installs, and deletes a preset without deleting NPK f
   const coatPath = join(libraryRoot, "coat.npk");
   const swordPath = join(libraryRoot, "sword.npk");
   const unrelatedPath = join(gameRoot, "unrelated.npk");
+  // 游戏根目录校验要求 ImagePacks2 / SoundPacks / video 三个子目录全部存在
   await Promise.all([
     mkdir(join(libraryRoot, "Armor"), { recursive: true }),
     mkdir(dataRoot, { recursive: true }),
-    mkdir(gameRoot, { recursive: true }),
+    mkdir(join(gameRoot, "ImagePacks2"), { recursive: true }),
+    mkdir(join(gameRoot, "SoundPacks"), { recursive: true }),
+    mkdir(join(gameRoot, "video"), { recursive: true }),
   ]);
   await Promise.all([
     writeFile(coatPath, "coat-payload"),
     writeFile(swordPath, "sword-payload"),
     writeFile(join(libraryRoot, "Armor", "nested.npk"), "nested-payload"),
   ]);
-  const launch = () => electron.launch({ args: [projectRoot], cwd: runtimeRoot });
+  const launch = () =>
+    electron.launch({
+      args: [`--user-data-dir=${join(runtimeRoot, "electron-data")}`, projectRoot],
+      cwd: runtimeRoot,
+    });
   const application = await launch();
 
   try {
@@ -103,11 +110,15 @@ test("persists, additively installs, and deletes a preset without deleting NPK f
       await expect(
         restartedPage.getByRole("checkbox", { name: "停用预设 测试预设", exact: true }),
       ).toBeChecked();
-      await expect.poll(() => exists(join(gameRoot, "coat.npk"))).toBe(true);
-      await expect.poll(() => exists(join(gameRoot, "sword.npk"))).toBe(true);
+      await expect.poll(() => exists(join(gameRoot, "ImagePacks2", "coat.npk"))).toBe(true);
+      await expect.poll(() => exists(join(gameRoot, "ImagePacks2", "sword.npk"))).toBe(true);
       await expect(readFile(unrelatedPath, "utf8")).resolves.toBe("unrelated-payload");
-      await expect(readFile(join(gameRoot, "coat.npk"), "utf8")).resolves.toBe("coat-payload");
-      await expect(readFile(join(gameRoot, "sword.npk"), "utf8")).resolves.toBe("sword-payload");
+      await expect(readFile(join(gameRoot, "ImagePacks2", "coat.npk"), "utf8")).resolves.toBe(
+        "coat-payload",
+      );
+      await expect(readFile(join(gameRoot, "ImagePacks2", "sword.npk"), "utf8")).resolves.toBe(
+        "sword-payload",
+      );
 
       await restartedPage.getByRole("button", { name: "删除预设 测试预设", exact: true }).click();
       await restartedPage.getByRole("button", { name: "确认删除", exact: true }).click();
@@ -134,10 +145,16 @@ test("reports missing preset references while installing existing items", async 
   const swordPath = join(libraryRoot, "sword.npk");
   await Promise.all([
     mkdir(libraryRoot, { recursive: true }),
-    mkdir(gameRoot, { recursive: true }),
+    mkdir(join(gameRoot, "ImagePacks2"), { recursive: true }),
+    mkdir(join(gameRoot, "SoundPacks"), { recursive: true }),
+    mkdir(join(gameRoot, "video"), { recursive: true }),
   ]);
   await Promise.all([writeFile(coatPath, "coat-payload"), writeFile(swordPath, "sword-payload")]);
-  const launch = () => electron.launch({ args: [projectRoot], cwd: runtimeRoot });
+  const launch = () =>
+    electron.launch({
+      args: [`--user-data-dir=${join(runtimeRoot, "electron-data")}`, projectRoot],
+      cwd: runtimeRoot,
+    });
   const application = await launch();
 
   try {
@@ -159,8 +176,8 @@ test("reports missing preset references while installing existing items", async 
           has: restartedPage.getByRole("checkbox", { name: "启用预设 测试预设", exact: true }),
         })
         .click();
-      await expect.poll(() => exists(join(gameRoot, "coat.npk"))).toBe(true);
-      await expect.poll(() => exists(join(gameRoot, "sword.npk"))).toBe(false);
+      await expect.poll(() => exists(join(gameRoot, "ImagePacks2", "coat.npk"))).toBe(true);
+      await expect.poll(() => exists(join(gameRoot, "ImagePacks2", "sword.npk"))).toBe(false);
       await expect(restartedPage.getByRole("status")).toContainText("跳过缺失：sword.npk");
     } finally {
       await restarted.close();

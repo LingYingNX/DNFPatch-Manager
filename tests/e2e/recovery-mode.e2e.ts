@@ -16,7 +16,10 @@ test("preserves corrupted state and exposes a read-only workspace", async () => 
   ]);
   await writeFile(settings, corruptedBytes);
   await writeFile(join(libraryRoot, "view-only.npk"), "view-only-payload");
-  const application = await electron.launch({ args: [projectRoot], cwd: runtimeRoot });
+  const application = await electron.launch({
+    args: [`--user-data-dir=${join(runtimeRoot, "electron-data")}`, projectRoot],
+    cwd: runtimeRoot,
+  });
 
   try {
     const page = await application.firstWindow();

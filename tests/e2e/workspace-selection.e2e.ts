@@ -13,7 +13,10 @@ test("selects patch cards by dragging from empty workspace space", async () => {
     writeFile(join(libraryRoot, "sword.npk"), "sword-payload"),
     writeFile(join(libraryRoot, "shield.npk"), "shield-payload"),
   ]);
-  const application = await electron.launch({ args: [projectRoot], cwd: runtimeRoot });
+  const application = await electron.launch({
+    args: [`--user-data-dir=${join(runtimeRoot, "electron-data")}`, projectRoot],
+    cwd: runtimeRoot,
+  });
 
   try {
     const page = await application.firstWindow();

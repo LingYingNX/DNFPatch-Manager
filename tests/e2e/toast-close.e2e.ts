@@ -9,7 +9,10 @@ test("toast close button dismisses the notice while settings dialog is open", as
   const runtimeRoot = await mkdtemp(join(tmpdir(), "dnf-toast-e2e-"));
   const gameRoot = join(runtimeRoot, "game");
   await mkdir(join(gameRoot, "ImagePacks2"), { recursive: true });
-  const application = await electron.launch({ args: [projectRoot], cwd: runtimeRoot });
+  const application = await electron.launch({
+    args: [`--user-data-dir=${join(runtimeRoot, "electron-data")}`, projectRoot],
+    cwd: runtimeRoot,
+  });
   try {
     const page = await application.firstWindow();
     await page.setViewportSize({ width: 1280, height: 720 });

@@ -57,7 +57,10 @@ async function readEmptyStateLayout(page: Page): Promise<EmptyStateLayout> {
 test("keeps the empty state centered while the workspace resizes", async () => {
   const projectRoot = resolve(import.meta.dirname, "../..");
   const runtimeRoot = await mkdtemp(join(tmpdir(), "dnf-empty-state-centering-e2e-"));
-  const application = await electron.launch({ args: [projectRoot], cwd: runtimeRoot });
+  const application = await electron.launch({
+    args: [`--user-data-dir=${join(runtimeRoot, "electron-data")}`, projectRoot],
+    cwd: runtimeRoot,
+  });
 
   try {
     const page = await application.firstWindow();

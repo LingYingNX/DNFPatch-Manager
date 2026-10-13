@@ -13,8 +13,10 @@ test("toggles every selected card from a single card switch", async () => {
   const libraryRoot = join(runtimeRoot, "patch-categories");
   const gameRoot = join(runtimeRoot, "game");
   await mkdir(join(libraryRoot, "分类"), { recursive: true });
+  // 游戏根目录校验要求 ImagePacks2 / SoundPacks / video 三个子目录全部存在
   await mkdir(join(gameRoot, "ImagePacks2"), { recursive: true });
   await mkdir(join(gameRoot, "SoundPacks"), { recursive: true });
+  await mkdir(join(gameRoot, "video"), { recursive: true });
   await Promise.all([
     writeFile(join(libraryRoot, "分类", "a.npk"), "a-payload"),
     writeFile(join(libraryRoot, "分类", "b.npk"), "b-payload"),
@@ -36,7 +38,7 @@ test("toggles every selected card from a single card switch", async () => {
     await directoryInput.fill(gameRoot);
     await directoryInput.press("Enter");
     await page.waitForTimeout(1000);
-    await page.locator(".dialog-backdrop-dismiss").click();
+    await page.locator(".dialog-backdrop-dismiss").click({ position: { x: 20, y: 450 } });
 
     await page.getByRole("button", { name: "分类", exact: true }).click();
     const first = page.getByRole("button", { name: "a.npk", exact: true });

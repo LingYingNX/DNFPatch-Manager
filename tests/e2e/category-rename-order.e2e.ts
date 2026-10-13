@@ -32,7 +32,8 @@ test("keeps the custom category order after renaming a folder", async () => {
 
     await expect(sidebar.getByRole("button", { name: "Zeta", exact: true })).toBeVisible();
     const defaultOrder = await rowOrder();
-    expect(defaultOrder).toEqual(["Alpha0", "Middle0", "Zeta0"]);
+    // 空分类不再渲染计数徽标（25186d4 起），行文本就是分类名
+    expect(defaultOrder).toEqual(["Alpha", "Middle", "Zeta"]);
 
     // 写入自定义顺序 Zeta 在前，与名称排序相反。
     const saved = await page.evaluate(() =>
@@ -45,9 +46,9 @@ test("keeps the custom category order after renaming a folder", async () => {
     // 直接调 IPC 绕过了渲染层的重新扫描，重载后从磁盘读回自定义顺序。
     await page.reload();
     await page.getByRole("main", { name: "补丁工作区" }).waitFor();
-    await expect.poll(async () => (await rowOrder())[0]).toBe("Zeta0");
+    await expect.poll(async () => (await rowOrder())[0]).toBe("Zeta");
     const customOrder = await rowOrder();
-    expect(customOrder).toEqual(["Zeta0", "Alpha0", "Middle0"]);
+    expect(customOrder).toEqual(["Zeta", "Alpha", "Middle"]);
 
     // 重命名 Zeta -> Renamed：应停在原位，而不是按名称重新插入。
     await sidebar.getByRole("button", { name: "Zeta", exact: true }).click({ button: "right" });
@@ -57,9 +58,9 @@ test("keeps the custom category order after renaming a folder", async () => {
     await input.press("Enter");
 
     await expect(sidebar.getByRole("button", { name: "Renamed", exact: true })).toBeVisible();
-    await expect.poll(async () => (await rowOrder())[0]).toBe("Renamed0");
+    await expect.poll(async () => (await rowOrder())[0]).toBe("Renamed");
     const afterRename = await rowOrder();
-    expect(afterRename).toEqual(["Renamed0", "Alpha0", "Middle0"]);
+    expect(afterRename).toEqual(["Renamed", "Alpha", "Middle"]);
   } finally {
     await application.close();
     await rm(runtimeRoot, { recursive: true, force: true });
@@ -90,10 +91,10 @@ test("keeps a renamed folder in place even when the order was never customized",
         .evaluateAll((rows) =>
           rows
             .map((row) => (row.textContent ?? "").replace(/\s+/gu, " ").trim())
-            .filter((text) => /^[0-9A-Za-z]+0$/u.test(text)),
+            .filter((text) => /^[0-9A-Za-z]+$/u.test(text)),
         );
 
-    expect(await rowOrder()).toEqual(["10", "20", "30"]);
+    expect(await rowOrder()).toEqual(["1", "2", "3"]);
 
     await sidebar.getByRole("button", { name: "2", exact: true }).click({ button: "right" });
     await page.getByRole("menuitem", { name: "重命名" }).click();
@@ -104,7 +105,7 @@ test("keeps a renamed folder in place even when the order was never customized",
     await expect(sidebar.getByRole("button", { name: "9", exact: true })).toBeVisible();
     await page.waitForTimeout(400);
     // 未排序过的分类也要锁在原位，而不是按新名字重新插入。
-    expect(await rowOrder()).toEqual(["10", "90", "30"]);
+    expect(await rowOrder()).toEqual(["1", "9", "3"]);
   } finally {
     await application.close();
     await rm(runtimeRoot, { recursive: true, force: true });
@@ -147,7 +148,7 @@ test("keeps existing order when the saved record is stale and incomplete", async
         );
 
     // 记录中技能在首位，它必须留在首位而不是被挤到数字后面。
-    expect(await rowOrder()).toEqual(["技能0", "10", "40", "50"]);
+    expect(await rowOrder()).toEqual(["技能", "1", "4", "5"]);
 
     // 新建 3：应追加到末尾，且不改变技能的位置。
     await sidebar.getByRole("button", { name: "新建子分类" }).click();
@@ -156,7 +157,7 @@ test("keeps existing order when the saved record is stale and incomplete", async
     await nameInput.press("Enter");
     await expect(sidebar.getByRole("button", { name: "3", exact: true })).toBeVisible();
     await page.waitForTimeout(400);
-    expect(await rowOrder()).toEqual(["技能0", "10", "40", "50", "30"]);
+    expect(await rowOrder()).toEqual(["技能", "1", "4", "5", "3"]);
 
     // 重命名 4 -> 9：位置保持，技能仍在首位。
     await sidebar.getByRole("button", { name: "4", exact: true }).click({ button: "right" });
@@ -166,7 +167,7 @@ test("keeps existing order when the saved record is stale and incomplete", async
     await renameInput.press("Enter");
     await expect(sidebar.getByRole("button", { name: "9", exact: true })).toBeVisible();
     await page.waitForTimeout(400);
-    expect(await rowOrder()).toEqual(["技能0", "10", "90", "50", "30"]);
+    expect(await rowOrder()).toEqual(["技能", "1", "9", "5", "3"]);
   } finally {
     await application.close();
     await rm(runtimeRoot, { recursive: true, force: true });
