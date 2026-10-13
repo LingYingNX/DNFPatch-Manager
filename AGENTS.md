@@ -110,6 +110,8 @@ pnpm doctor                      # react-doctor 诊断
 
 **CI 会拦截的提交**（本地跑 `bash scripts/verify-harness.sh --level=3` 可复现）：触及 `package.json`、`.github/workflows/*` 或 `scripts/*` 时必须同时更新根 `AGENTS.md`——作用域按目录前缀匹配，改 `scripts/` 时更新 `src/AGENTS.md` 不算数；`.github/pull_request_template.md` 必须存在。两者都会让 harness 以退出码 2 失败（drift 检查是 warning，但 warning 同样退出码 2）。pre-commit 以 `--level=3 --staged` 跑同一套检查，drift 在提交前即被拦下；`--staged` 查暂存区而非上一个提交，因为 pre-commit 阶段 `HEAD~1..HEAD` 仍指向旧提交、查它拦不住本次改动。Latest 指针校验（`release.yml`）先等 Release 出现（草稿则 warning 放行）再比对指针；查询失败不得吞成空串，否则会同时绕过草稿检测与标签比对，把"还没发布完"误报成"指针没迁移"。
 
+`scripts/verify-harness.sh` 以 `set -e` 运行：任何可能非 0 退出的 `git` / `gh` 命令替换都要显式容错（`|| true`），否则失败会穿透 `set -e` 让整个脚本在那一行提前终止。**`exit 2` + 零输出代表脚本自己挂了，不是检查失败**——例如仓库没有 `origin` remote 时 `git remote get-url origin` 退出 128，`check_pr_template` 里的裸命令替换会让脚本在跑到 drift 检查之前就死掉（见 `.learnings/ERRORS.md` ERR-20260917-001）。看到「某项检查完全没输出」时先查脚本里的裸命令替换，别去改检查逻辑。
+
 ### 工作范围
 
 - 只改任务点名的部分，不做顺手重构或重排。

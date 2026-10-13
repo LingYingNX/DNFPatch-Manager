@@ -490,7 +490,10 @@ check_pr_template() {
             return
         fi
         local org=""
-        org=$(git remote get-url origin 2>/dev/null | sed -n 's|.*github\.com[:/]\([^/]*\)/.*|\1|p')
+        # 无 origin remote 时 `git remote get-url` 退出 128；命令替换的失败会穿透
+        # `set -e` 直接终止整个脚本（零输出、exit 2，检查一项都没跑完）。与 102 行的
+        # detect_platform 对齐补容错。sed 在空输入下只输出空串，不会失败。
+        org=$(git remote get-url origin 2>/dev/null | sed -n 's|.*github\.com[:/]\([^/]*\)/.*|\1|p' || true)
         if [[ -n "$org" ]]; then
             local api_result=""
             api_result=$(gh api "repos/${org}/.github/contents/pull_request_template.md" --jq '.name' 2>/dev/null || true)
