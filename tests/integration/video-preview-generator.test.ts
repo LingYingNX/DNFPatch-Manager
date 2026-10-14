@@ -146,6 +146,37 @@ describe("resolveVideoPreviewTools", () => {
     expect(libraryRoot).toBeDefined();
   });
 
+  it("finds a bundled tool directory under a resources directory search root", async () => {
+    // 安装版布局：extraResources 落在 <安装目录>\resources，register-ipc 会把
+    // process.resourcesPath 一并作为搜索根传入。
+    const resourcesRoot = await mkdtemp(join(tmpdir(), "dnf-video-resources-"));
+    temporaryDirectories.push(resourcesRoot);
+    const toolsDirectory = join(resourcesRoot, "tools", "bink2nvenc");
+    await mkdir(toolsDirectory, { recursive: true });
+    await Promise.all([
+      writeFile(join(toolsDirectory, "bink2nvenc.exe"), "stub"),
+      writeFile(join(toolsDirectory, "ffmpeg.exe"), "stub"),
+    ]);
+
+    const previous = {
+      nvenc: process.env["DNF_BINK2NVENC"],
+      radVideo: process.env["DNF_RADVIDEO"],
+      ffmpeg: process.env["DNF_FFMPEG"],
+    };
+    delete process.env["DNF_BINK2NVENC"];
+    delete process.env["DNF_RADVIDEO"];
+    delete process.env["DNF_FFMPEG"];
+    try {
+      const tools = await resolveVideoPreviewTools([resourcesRoot]);
+      expect(tools.nvenc).toBe(join(toolsDirectory, "bink2nvenc.exe"));
+      expect(tools.ffmpeg).toBe(join(toolsDirectory, "ffmpeg.exe"));
+    } finally {
+      restoreEnvironment("DNF_BINK2NVENC", previous.nvenc);
+      restoreEnvironment("DNF_RADVIDEO", previous.radVideo);
+      restoreEnvironment("DNF_FFMPEG", previous.ffmpeg);
+    }
+  });
+
   it("ignores an environment override that does not point at a file", async () => {
     const previousNvenc = process.env["DNF_BINK2NVENC"];
     process.env["DNF_BINK2NVENC"] = join(tmpdir(), "definitely-missing-bink2nvenc.exe");

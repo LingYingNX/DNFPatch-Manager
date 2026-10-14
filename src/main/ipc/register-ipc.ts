@@ -137,12 +137,16 @@ export async function registerIpc(
   const categoryStyle = createCategoryStyleService(
     win32.join(paths.dataRoot, "category-styles.json"),
   );
-  registerCategoryTransferIpc({ categoryOrder, categoryStyle, paths });
+  // 库根固定为 <应用根>\patch-categories，父目录即应用根；安装/便携版的转换器
+  // 随 extraResources 打在 <应用根>\resources\tools\bink2nvenc，需把 resourcesPath
+  // 一并作为搜索根（开发模式下该目录不存在，探测自然跳过）。
+  const videoToolRoots = [win32.dirname(paths.libraryRoot), process.resourcesPath];
+  registerCategoryTransferIpc({ categoryOrder, categoryStyle, paths, videoToolRoots });
 
   // 手动复制进库的 .bk2 不经过导入 IPC，只在扫描后发现缺预览时后台补生成。
   const videoPreviewScheduler = createVideoPreviewScheduler({
     libraryRoot: paths.libraryRoot,
-    searchRoots: [win32.dirname(paths.libraryRoot)],
+    searchRoots: videoToolRoots,
     onGenerated: (relativePaths) => {
       if (!window.isDestroyed()) {
         window.webContents.send(IPC_CHANNELS.libraryChanged, {

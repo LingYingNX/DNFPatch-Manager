@@ -42,6 +42,15 @@
       "out/**/*",
       "package.json"
     ],
+    "extraResources": [
+      {
+        "from": "tools/bink2nvenc",
+        "to": "tools/bink2nvenc",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
     "publish": [
       {
         "provider": "github",
