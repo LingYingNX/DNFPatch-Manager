@@ -42,6 +42,7 @@ pnpm build
 - React 组件使用函数组件与 `React.JSX.Element` 返回类型；只读 props 用 `readonly`。
 - 渲染进程不得直接 `import` Electron；所有原生能力走 preload 暴露的 API。
 - 复用 `src/shared/` 已有契约与 `src/core/` 已有服务，不新增重复抽象。
+- 视觉值一律走设计变量：颜色、圆角、字号、字重、控件尺寸先查 `src/renderer/styles/tokens.css`，有对应 `--token` 就用 `var(--token)`，不写硬编码字面量；token 不够时先补 token 再消费，不要绕开它（2026-10 的 UI 收敛已把全库硬编码清掉，别再引入）。选中态统一线框语言（`--color-focus` 等），不用填充高亮。
 - 新增行为必须补对应测试，不弱化或删除既有断言。
 
 ## Security & safety
@@ -83,7 +84,7 @@ pnpm build
 - **`--start N --count M` 组合不可靠**：不同 N 会产出 byte 相同的结果；封面抽帧一律走 `radvideo64.exe` 的单帧 JPG，不用它抽帧。JPG 导出器对 `/Z2000` 这类开关会静默放弃产物（ERR-20261010-001）。
 - **视频能否播放取决于 CSP**：`<video>` 走 `media-src`，`src/renderer/index.html` 的 CSP 未列出 `dnf-library:` 时元素渲染出来但永远拿不到帧（表现为悬停一个黑框，ERR-20261009-004）。改动 scheme 或 CSP 需同步 `tests/unit/media-scheme-contracts.test.ts`。
 - **同名 MP4 预览随补丁一起走**：回收、清空、单条删除、重命名、移动时都要连带处理同名 MP4，否则会留下孤儿预览。
-- 转换器不入库（`tools/bink2nvenc/` 已在 `.gitignore`）：RAD 官方许可禁止再分发，运行期探测本机已有工具，探测不到就静默跳过，不影响导入。
+- **转换器不入库但随包分发**（`tools/bink2nvenc/` 在 `.gitignore`，二进制不提交）：打包经 `package.json` 的 `build.extraResources` 进 `<安装目录>\resources\tools\bink2nvenc`，`register-ipc.ts` 把 `process.resourcesPath` 与库根父目录一起作为搜索根传入，`resolveVideoPreviewTools`（`video-preview-generator.ts`）按 环境变量 → 应用目录 → PATH 顺序探测；探测不到就静默跳过，不影响导入。编码器选择不要硬编码：启动时用捆绑 ffmpeg `-encoders` 实测选 H.264 档（libx264 优先、h264_nvenc 兜底），测试走纯函数 `parseEncoderProfile`。
 
 ## 禁止重复造路径/状态辅助（简化前必读）
 
