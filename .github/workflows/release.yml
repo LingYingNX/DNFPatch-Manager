@@ -58,6 +58,10 @@ jobs:
           # 发布是异步的：electron-builder 上传资产后才发布 Release，本步骤常先于它结束。
           # 因此先等 Release 出现，再判断指针；查询失败不再吞成空串（空串会同时绕过
           # 草稿检测和标签比对，把"还没发布完"误报成"指针没迁移"）。
+          # build.releaseType=release（package.json）后 electron-builder 直接发布非草稿，
+          # 草稿分支仅作兜底：若将来配置回退到默认 draft，此步骤仍能给出正确指引。
+          # 已知历史坑：electron-builder 上传大资产时可能并发创建两个草稿（exe+latest.yml
+          # 一个、blockmap 一个），此时按 warning 指引人工合并草稿后发布。
           $retries = 12
           for ($i = 1; $i -le $retries; $i++) {
             $info = gh api "repos/$repo/releases/tags/$expected" 2>&1

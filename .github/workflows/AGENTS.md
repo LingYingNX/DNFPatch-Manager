@@ -21,6 +21,7 @@
 - 同一版本重打包不会触发已有安装的自动更新；修复更新必须递增版本号。
 - 发布后必须校验 `releases/latest` 指向新标签：`electron-updater` 稳定通道只查该接口，指针未迁移时客户端检测不到更新。「Verify latest release pointer」步骤负责此项——electron-builder 留下草稿时输出 warning 并放行（草稿需人工补更新说明后发布），已发布但指针未迁移（重试 30 秒）则失败并给出修复命令。该步骤必须带 `GH_TOKEN` 环境变量，否则 runner 上 `gh` 未认证、查询返回空。改动发布流程时不得删除该步骤。
 - 该步骤的发布时序必须按「先等 Release 出现、再比对指针」实现：electron-builder 上传资产时才创建 Release（常晚于构建日志），且创建后是**草稿**状态——草稿不出现在 `releases/latest`。早期版本用 `gh api ... 2>$null` 把查询失败吞成空串，空串既不等于 `"true"`（草稿检测失效）也不等于期望标签，于是 v1.2.3、v1.2.5 都把"还没发布完"误报成"指针没迁移"而失败。现在查询失败保留错误输出并显式判定，不得再退回 `2>$null` 写法。
+- `package.json` 的 `build.releaseType` 必须保持 `"release"`：electron-builder 缺省 `draft` 会让 release 永不 publish，上传大资产时还可能并发创建两个草稿（exe+latest.yml 一个、blockmap 一个），指针校验必超时标红（v1.2.9、v1.3.0 连续中招，见 `.learnings/ERRORS.md` ERR-20261014-003）。verify 步骤中的草稿分支仅作配置回退时的兜底指引。
 
 ## Build & tests
 

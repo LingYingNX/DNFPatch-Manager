@@ -31,6 +31,7 @@
     "electronDist": "node_modules/electron/dist",
     "asar": true,
     "compression": "normal",
+    "releaseType": "release",
     "electronLanguages": [
       "zh-CN",
       "en-US"
