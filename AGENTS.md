@@ -129,9 +129,8 @@ pnpm doctor                      # react-doctor 诊断
 
 ## 文档指针（Pointer）
 
-- 手册/项目记忆：`docs/USER_GUIDE.md`、`docs/PROJECT_HISTORY.md`、`docs/PROJECT_MEMORY.md`
-- 模块/维护/审计：`docs/FUNCTION_MODULES.md`、`docs/MAINTENANCE.md`、`docs/verification/`
-- 架构/ADR/规格/经验：`docs/adr/`、`docs/superpowers/specs/`、`docs/superpowers/plans/`、`.learnings/`
+- 手册/模块/维护：`docs/USER_GUIDE.md`、`docs/FUNCTION_MODULES.md`、`docs/MAINTENANCE.md`
+- 架构/ADR/经验：`docs/adr/`、`docs/ARCHITECTURE.md`、`.learnings/`
 
 ## Scoped AGENTS.md（进入对应目录前必须阅读）
 

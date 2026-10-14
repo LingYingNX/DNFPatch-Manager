@@ -29,3 +29,5 @@ Thumbs.db
 # 不入库；运行时由 video-preview-generator 自动探测应用根目录下的 tools/。
 tools/bink2nvenc/
 .tmp-bink2-verify/
+# BK2 转换工具参考源码（本地参考用，不入库）
+Bink2VideoToMP4-NVENC-main/
