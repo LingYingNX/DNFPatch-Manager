@@ -8,7 +8,6 @@ const excludedRoots = new Set([
   ".git",
   ".omo",
   ".scratch",
-  ".superpowers",
   "data",
   "dist",
   "node_modules",
