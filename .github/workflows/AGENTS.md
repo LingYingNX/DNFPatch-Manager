@@ -1,4 +1,4 @@
-<!-- Managed by agent: keep sections and order; edit content, not structure. Last updated: 2026-09-27 -->
+<!-- Managed by agent: keep sections and order; edit content, not structure. Last updated: 2026-10-14 -->
 
 # AGENTS.md — .github/workflows
 
