@@ -8,6 +8,7 @@ import {
   binkConverterArgs,
   type ConverterInvocation,
   generateVideoPreview,
+  parseEncoderProfile,
   readBink2Header,
   resolveVideoPreviewTools,
 } from "../../src/main/library/video-preview-generator";
@@ -370,6 +371,26 @@ describe("generateVideoPreview", () => {
     expect(transcode?.args).toContain("yuv420p");
     expect(transcode?.args[transcode.args.indexOf("-i") + 1]).toBe(exportTarget);
     expect(win32.basename(transcode?.args.at(-1) ?? "")).toBe("playback.mp4");
+    // 编码器按 `-encoders` 实测选择（捆绑 ffmpeg 无 libx264，见
+    // resolveH264EncoderProfile）；此测试里 ffmpeg 是假文件，探测失败回落 libx264 档。
+    expect(transcode?.args).toContain("libx264");
+  });
+
+  it("prefers h264_nvenc when the ffmpeg build lists it instead of libx264", () => {
+    // 模拟捆绑的 bink2 补丁版 ffmpeg `-encoders` 输出：只有 h264_nvenc、没有 libx264。
+    const listing = [
+      " V....D h264_nvenc           NVIDIA NVENC H.264 encoder (codec h264)",
+      " V....D hevc_nvenc           NVIDIA NVENC hevc encoder (codec hevc)",
+      "",
+    ].join("\n");
+    const profile = parseEncoderProfile(listing);
+    expect(profile.encoder).toBe("h264_nvenc");
+    expect(profile.qualityArgs).toContain("p7");
+  });
+
+  it("falls back to the libx264 profile when the encoder probe fails", () => {
+    expect(parseEncoderProfile("").encoder).toBe("libx264");
+    expect(parseEncoderProfile(" V....D h264_mf  Media Foundation H.264").encoder).toBe("libx264");
   });
 
   it("skips the AVI round trip when the uncompressed intermediate would be too large", async () => {

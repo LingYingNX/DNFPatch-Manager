@@ -30,7 +30,7 @@
     "productName": "DNF补丁管理器",
     "electronDist": "node_modules/electron/dist",
     "asar": true,
-    "compression": "maximum",
+    "compression": "normal",
     "electronLanguages": [
       "zh-CN",
       "en-US"
@@ -47,7 +47,11 @@
         "from": "tools/bink2nvenc",
         "to": "tools/bink2nvenc",
         "filter": [
-          "**/*"
+          "**/*",
+          "!ffprobe.exe",
+          "!BK2ConverterGUI.exe",
+          "!convert_one.sh",
+          "!README.md"
         ]
       }
     ],

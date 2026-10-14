@@ -915,17 +915,14 @@
   justify-content: flex-start;
 }
 
-/* 工作区搜索框直接沿用 .search-field 的凹槽输入语言：2px 描边、8px 圆角、
-   field-surface 底、聚焦换蓝灰描边加外发光。这里只收窄宽度，给视图切换与
-   「包含子分类」让位。
+/* 工作区搜索框沿用 .search-field 的星云样式（透明黑底、5px 圆角、紫辉光、粒子），
+   这里只负责它在工具栏里的占位：宽度由 .search-field 的 250px 决定，不允许被压缩，
+   给视图切换与「包含子分类」让位。
    原先它是一套私有样式（2.7em 高、纯黑底、4px 圆角、青蓝墨水加悬停下划线动画），
    而它用的那两个色值在 tokens.css 的任何主题里都不存在——换个主题，整个工具栏
    就它一个不跟着走。 */
 .workspace-search-field {
-  width: min(320px, 100%);
-  max-width: 320px;
-  flex: 0 1 320px;
-  min-width: 0;
+  flex: none;
 }
 
 .workspace-search-field > svg {

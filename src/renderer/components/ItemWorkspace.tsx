@@ -41,6 +41,17 @@ import {
 import type { SelectionModifiers } from "../workspace/useItemSelection";
 import { ContextMenu, type ContextMenuAction } from "./ContextMenu";
 
+/** 星云搜索框的 6 颗粒子落点（--x / --y 乘数，见 toolbar.css 的 nebula-float）。
+    纯装饰：聚焦时从框内左侧飞散一次。坐标照搬源设计，不要在这里调参。 */
+const SEARCH_NEBULA_PARTICLES: readonly (readonly [string, string])[] = [
+  [".2", "-.25"],
+  [".45", ".15"],
+  [".7", "-.4"],
+  [".9", ".3"],
+  ["1", "-.1"],
+  [".35", ".4"],
+];
+
 type SelectionBox = {
   readonly currentX: number;
   readonly currentY: number;
@@ -450,6 +461,15 @@ export function ItemWorkspace(props: ItemWorkspaceProps): React.JSX.Element {
               type="search"
               value={props.query}
             />
+            {/* 必须排在 input 之后：toolbar.css 用 `input:focus ~ .nebula-particle` 触发。 */}
+            {SEARCH_NEBULA_PARTICLES.map(([x, y]) => (
+              <span
+                aria-hidden="true"
+                className="nebula-particle"
+                key={`${x}:${y}`}
+                style={{ "--x": x, "--y": y } as React.CSSProperties}
+              />
+            ))}
           </label>
           <fieldset className="view-mode-control" aria-label="项目视图">
             <button

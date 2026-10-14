@@ -267,25 +267,36 @@
   font-family: "Cascadia Mono", Consolas, monospace;
 }
 
-/* 搜索框：凹槽式文本输入。底色比表面亮一档形成凹陷，2px 实线描边在聚焦时换成中性
-   蓝灰。聚焦刻意不用 --color-primary：工具栏里品牌紫专指「当前选中」，输入框只是容器，
-   用同一色会让同屏出现两个同色环。也刻意不叠半透明外发光：2px 实线描边本身就是焦点
-   指示，再罩一层 3px 光晕只会把边缘糊虚，看起来像两层边。 */
+/* 搜索框：星云样式（来源：桌面「搜索框样式.css」的 .searchbox）。
+   与全站凹槽输入的区别是刻意保留的——底换成 30% 透明黑让壁纸透出来、圆角收到 5px、
+   聚焦时描边由 2px 收到 1px 并转亮紫，再叠一层单层紫辉光，同时 6 颗粒子飞散一次。
+   注意这里聚焦用紫，与 tokens.css「品牌紫专指选中」的旧约定不同：紫辉光就是星云设计的
+   签名，是用户明确指定的样式，不要按旧约定改回中性蓝灰。
+   高度沿用 --control-height（源设计是 34px）：同一行的视图切换轨道也是这个高度，
+   差 2px 会让工具栏那条基线看着是歪的。 */
 .search-field {
-  width: min(100%, 540px);
+  position: relative;
+  width: 250px;
   height: var(--control-height);
   gap: 9px;
   justify-self: center;
-  padding: 0 var(--space-4);
-  border: 2px solid var(--color-field-border);
-  border-radius: var(--radius-panel);
+  padding: 0 var(--space-3);
+  border: 2px solid var(--color-nebula-border);
+  border-radius: var(--radius-sm);
   color: var(--color-text-secondary);
-  background: var(--color-field-surface);
-  transition: border-color var(--motion-fast) var(--easing-standard);
+  font-size: var(--font-md);
+  background: var(--color-nebula-surface);
+  transition:
+    border-color 0.4s ease-out,
+    border-width 0.4s ease-out,
+    box-shadow 0.4s ease-out,
+    background-color 0.4s ease-out;
 }
 
 .search-field:focus-within {
-  border-color: var(--color-field-border-focus);
+  border-width: 1px;
+  border-color: var(--color-nebula-border-focus);
+  box-shadow: 0 4px 14px var(--color-nebula-glow);
 }
 
 .search-field input {
@@ -306,6 +317,46 @@
    所以用 secondary（约 6.4:1）而不用 tertiary（约 2.8:1）。 */
 .search-field input::placeholder {
   color: var(--color-text-secondary);
+}
+
+/* 星云粒子：纯装饰，聚焦时沿 --x / --y 飞散一次即透明。
+   必须排在 input 之后——选择器用的是 `input:focus ~ .nebula-particle`，
+   这 6 个 span 由 ItemWorkspace 的 SEARCH_NEBULA_PARTICLES 渲染。
+   reduced-motion 不需要在这里单独写：tokens.css 的全局规则已把 duration 压到
+   0.001ms，动画会直接落到终态（透明）。 */
+.nebula-particle {
+  position: absolute;
+  top: 50%;
+  left: 10px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  opacity: 0;
+  filter: blur(0.8px);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.search-field input:focus ~ .nebula-particle {
+  animation: nebula-float 2s ease-out forwards;
+}
+
+@keyframes nebula-float {
+  0% {
+    transform: translate(0, -50%) scale(0.8);
+    background: var(--color-nebula-particle-start);
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: translate(calc(var(--x) * 140px), calc(var(--y) * 35px)) scale(1.1);
+    background: var(--color-nebula-particle-end);
+    opacity: 0;
+  }
 }
 
 /* 视图切换：凹槽轨道 + 选中块。

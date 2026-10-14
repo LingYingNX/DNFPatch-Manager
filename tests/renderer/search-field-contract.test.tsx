@@ -29,14 +29,29 @@ describe("patch search field contract", () => {
     expect(screen.queryByRole("button", { name: /麦克风/u })).not.toBeInTheDocument();
   });
 
+  it("renders the nebula particles as decoration after the input", async () => {
+    render(<App api={createFakeApi(WORKSPACE_SNAPSHOT)} />);
+
+    const search = await screen.findByRole("searchbox", { name: "搜索补丁" });
+    const field = search.closest("label");
+
+    // 6 个落点照搬源设计；少一个就不是那套粒子了。
+    expect(field?.querySelectorAll(".nebula-particle")).toHaveLength(6);
+    // 必须紧跟在 input 之后：toolbar.css 的 `input:focus ~ .nebula-particle` 靠兄弟顺序选中。
+    expect(search.nextElementSibling).toHaveClass("nebula-particle");
+    // 纯装饰，不能被读屏念出来。
+    for (const particle of field?.querySelectorAll(".nebula-particle") ?? []) {
+      expect(particle).toHaveAttribute("aria-hidden", "true");
+    }
+  });
+
   it("keeps the search control on the shared toolbar control language", () => {
     const stylesheet = readProjectFile("src/renderer/styles/layout.css");
     const block = stylesheet.match(/\.workspace-search-field\s*\{[\s\S]*?\n\}/u)?.[0] ?? "";
     const toolbar = readProjectFile("src/renderer/styles/toolbar.css");
 
-    // 工作区搜索框只负责收窄宽度：颜色、圆角、高度、字体全部交给 .search-field。
-    expect(block).toContain("max-width: 320px;");
-    expect(block).toContain("flex: 0 1 320px;");
+    // 工作区搜索框只负责占位：宽度、颜色、圆角、高度、字体全部交给 .search-field。
+    expect(block).toContain("flex: none;");
     expect(block).not.toMatch(/color|background|border|height|font/u);
     expect(toolbar).toContain(".search-field input::placeholder");
     expect(toolbar).toContain(".search-field:focus-within");
@@ -47,19 +62,22 @@ describe("patch search field contract", () => {
     expect(stylesheet).not.toContain("workspace-search-line-draw");
   });
 
-  it("paints the search field as an inset well with a neutral focus border", () => {
+  it("paints the search field as the nebula box with a purple focus glow", () => {
     const toolbar = readProjectFile("src/renderer/styles/toolbar.css");
     const fieldBlock = toolbar.match(/\.search-field\s*\{[\s\S]*?\n\}/u)?.[0] ?? "";
     const focusBlock = toolbar.match(/\.search-field:focus-within\s*\{[\s\S]*?\n\}/u)?.[0] ?? "";
 
-    // 凹槽底 + 2px 描边是搜索框的固定外观，换 token 就会退回普通 surface 面板。
-    expect(fieldBlock).toContain("background: var(--color-field-surface);");
-    expect(fieldBlock).toContain("border: 2px solid var(--color-field-border);");
-    // 聚焦描边走中性蓝灰而不是品牌紫：紫在全站专指「选中」。
-    expect(focusBlock).toContain("border-color: var(--color-field-border-focus);");
-    expect(focusBlock).not.toContain("--color-primary");
-    // 只留内层那一圈 2px 实线边框：再加半透明外发光，边缘就糊成两层虚边。
-    expect(focusBlock).not.toContain("box-shadow");
+    // 半透明底 + 2px 描边是星云框的固定外观，换回 --color-field-* 就不再透壁纸。
+    expect(fieldBlock).toContain("background: var(--color-nebula-surface);");
+    expect(fieldBlock).toContain("border: 2px solid var(--color-nebula-border);");
+    // 聚焦：描边由 2px 收到 1px 并转亮紫，再叠一层单层紫辉光。
+    // 这里用紫是刻意的，与「品牌紫专指选中」的旧约定分家——紫辉光就是星云设计的签名。
+    expect(focusBlock).toContain("border-width: 1px;");
+    expect(focusBlock).toContain("border-color: var(--color-nebula-border-focus);");
+    expect(focusBlock).toContain("box-shadow: 0 4px 14px var(--color-nebula-glow);");
+    // 粒子靠兄弟选择器触发，选择器与关键帧缺一不可。
+    expect(toolbar).toContain(".search-field input:focus ~ .nebula-particle");
+    expect(toolbar).toContain("@keyframes nebula-float");
   });
 
   it("gives every theme its own inset-well token set", () => {
@@ -77,6 +95,12 @@ describe("patch search field contract", () => {
       "--color-field-surface",
       "--color-field-border",
       "--color-field-border-focus",
+      // 星云框自己那套：同样必须每个主题各自声明，否则高对比主题会继承默认主题
+      // 那组给 #151d2b 配的深色值，纯黑上等于没画框。
+      "--color-nebula-surface",
+      "--color-nebula-border",
+      "--color-nebula-border-focus",
+      "--color-nebula-glow",
     ];
     const themes = [
       { label: "默认", selector: ":root" },

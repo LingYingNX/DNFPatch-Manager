@@ -322,6 +322,8 @@ type PlaybackEncodeRequest = {
   readonly tools: VideoPreviewTools;
   readonly run: ConverterRunner;
   readonly workspace: string;
+  /** 中间 AVI → H.264 用的编码器档位（调用方解析一次复用）。 */
+  readonly encoderProfile: H264EncoderProfile;
 };
 
 /**
@@ -366,11 +368,8 @@ async function encodePlayback(request: PlaybackEncodeRequest): Promise<string | 
           "-i",
           exported,
           "-c:v",
-          "libx264",
-          "-preset",
-          X264_PRESET,
-          "-crf",
-          X264_CRF,
+          request.encoderProfile.encoder,
+          ...request.encoderProfile.qualityArgs,
           "-pix_fmt",
           "yuv420p",
           "-movflags",
@@ -455,6 +454,63 @@ const AVI_BYTES_LIMIT = 1_500_000_000;
 const X264_PRESET = "slow";
 const X264_CRF = "18";
 
+/**
+ * 中间 AVI → H.264 的编码器档位。随包分发的 ffmpeg 是 bink2 补丁版（5.1.x，无
+ * libx264，只有 h264_nvenc/h264_mf），而 PATH 上的完整构建通常有 libx264；硬编码
+ * `libx264` 会让打包版的预乘路径必然失败、回落无预乘的 NVENC 单步编码（透明区变
+ * 130 灰）。因此按 `-encoders` 实际输出选档：libx264 优先（CRF 恒定质量、与系统
+ * 无关），h264_nvenc 兜底（目标用户必有 N 卡——bink2nvenc 本身就依赖 NVENC）。
+ */
+type H264EncoderProfile = {
+  readonly encoder: string;
+  readonly qualityArgs: readonly string[];
+};
+
+const LIBX264_PROFILE: H264EncoderProfile = {
+  encoder: "libx264",
+  qualityArgs: ["-preset", X264_PRESET, "-crf", X264_CRF],
+};
+
+const NVENC_PROFILE: H264EncoderProfile = {
+  encoder: "h264_nvenc",
+  qualityArgs: ["-preset", "p7", "-cq", "1"],
+};
+
+/**
+ * 探测 `ffmpeg -encoders` 输出并选档；探测失败时保守回落 libx264 档。
+ */
+export async function resolveH264EncoderProfile(ffmpeg: string): Promise<H264EncoderProfile> {
+  const listing = await new Promise<string>((resolve) => {
+    let child: ReturnType<typeof spawn>;
+    try {
+      child = spawn(ffmpeg, ["-hide_banner", "-encoders"], {
+        stdio: ["ignore", "pipe", "ignore"],
+        windowsHide: true,
+      });
+    } catch {
+      // spawn 会同步抛 EINVAL（如不可执行格式）；异步 error 走下面的 handler。
+      resolve("");
+      return;
+    }
+    let output = "";
+    child.on("error", () => resolve(""));
+    child.stdout?.on("data", (chunk: Buffer) => {
+      output += chunk.toString();
+    });
+    child.on("close", () => resolve(output));
+  });
+  return parseEncoderProfile(listing);
+}
+
+/** 按 `-encoders` 文本输出选档：libx264 优先、h264_nvenc 兜底，都没有则回落 libx264 档。 */
+export function parseEncoderProfile(listing: string): H264EncoderProfile {
+  for (const profile of [LIBX264_PROFILE, NVENC_PROFILE]) {
+    // `-encoders` 每行格式为 ` V....D <name> <description>`；按名字整词匹配。
+    if (new RegExp(`\\s${profile.encoder}\\s`).test(listing)) return profile;
+  }
+  return LIBX264_PROFILE;
+}
+
 const BINK_STABLE_MS = 1500;
 const COVER_TIMEOUT_MS = 60_000;
 const FFMPEG_STABLE_MS = 250;
@@ -503,6 +559,8 @@ export async function generateVideoPreview(
       await mkdir(encodeDirectory, { recursive: true });
       // 转换器的输入与输出路径都必须是纯 ASCII，因此临时产物用固定英文名，
       // 搬回补丁库时才改成与 BK2 同名的 `<base>.mp4`。
+      const encoderProfile =
+        tools.ffmpeg === null ? LIBX264_PROFILE : await resolveH264EncoderProfile(tools.ffmpeg);
       const encoded = await encodePlayback({
         inputPath: asciiInput,
         outputPath: win32.join(encodeDirectory, "playback.mp4"),
@@ -512,6 +570,7 @@ export async function generateVideoPreview(
         tools,
         run: runConverter,
         workspace,
+        encoderProfile,
       });
       if (encoded !== null) {
         const target = resolveLibraryPath(request.libraryRoot, win32.join(directory, playbackName));

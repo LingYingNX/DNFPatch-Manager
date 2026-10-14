@@ -30,6 +30,18 @@
   --color-field-surface: #222630;
   --color-field-border: #2b3040;
   --color-field-border-focus: #596a95;
+  /* 星云搜索框（来源：桌面「搜索框样式.css」的 .searchbox）。与上面那套凹槽语言刻意分家：
+     底是 30% 透明黑而不是不透明凹槽色，壁纸能从框里透出来；聚焦时描边由 2px 收到 1px
+     并转亮紫，再叠一层单层紫辉光。旧注释里「聚焦不用紫」的约定不适用于这个框——
+     用户明确指定的样式，紫辉光就是它的签名，不要按旧约定改回中性蓝灰。
+     三个主题各自给值，理由同 --color-field-*：硬编码深色值搬到别的主题上会糊成死块。 */
+  --color-nebula-surface: rgb(0 0 15 / 30%);
+  --color-nebula-border: #2a2a3a;
+  --color-nebula-border-focus: #b56aff;
+  --color-nebula-glow: rgb(181 106 255 / 22%);
+  /* 粒子是纯装饰色，三个主题共用同一对紫→青，不进主题覆盖。 */
+  --color-nebula-particle-start: #c774ff;
+  --color-nebula-particle-end: #6df2ff;
   /* 滚动条强调色（默认主题的霓虹渐变）。这里存通道三元组而不是整色，因为
      侧栏与设置面板都要按悬停进度叠 alpha：rgb(var(--…-rgb) / calc(…))。 */
   --scrollbar-thumb-start-rgb: 244 63 94;
@@ -144,6 +156,12 @@
   --color-field-surface: #1a1a1a;
   --color-field-border: #a0a0a0;
   --color-field-border-focus: #ffffff;
+  /* 星云搜索框：默认主题那组 #2a2a3a 描边在纯黑上只有 1.6:1，等于没画；
+     聚焦紫也提亮一档，让「高对比」这个前提在搜索框上同样成立。 */
+  --color-nebula-surface: rgb(0 0 0 / 55%);
+  --color-nebula-border: #a0a0a0;
+  --color-nebula-border-focus: #e6d0ff;
+  --color-nebula-glow: rgb(230 208 255 / 45%);
 }
 
 :root[data-theme="glass"] {
@@ -164,6 +182,12 @@
   --color-field-surface: rgba(6, 14, 26, 0.62);
   --color-field-border: rgba(184, 216, 255, 0.26);
   --color-field-border-focus: rgba(183, 214, 255, 0.78);
+  /* 星云搜索框：不透明的 #2a2a3a 描边在壁纸上会切出一条硬黑线，换成同族半透明浅蓝；
+     聚焦紫提亮并偏蓝一档，与这个主题的蓝调同屏不打架。 */
+  --color-nebula-surface: rgb(6 14 26 / 42%);
+  --color-nebula-border: rgb(184 216 255 / 26%);
+  --color-nebula-border-focus: #c9a6ff;
+  --color-nebula-glow: rgb(201 166 255 / 32%);
 }
 
 :root[data-theme="glass"] .app-shell {
