@@ -98,7 +98,7 @@ test("switches real library items between stable grid and list views", async () 
     const toolbarControls = [
       page.getByRole("button", { name: "设置" }),
       page.getByRole("button", { name: "调整外观" }),
-      page.getByRole("button", { name: "新建子分类" }),
+      page.getByRole("button", { name: "新建文件夹" }),
       page.locator(".workspace-search-field"),
       page.locator(".view-mode-control"),
       page.getByRole("checkbox", { name: "包含子分类" }),

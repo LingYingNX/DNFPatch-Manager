@@ -34,8 +34,10 @@ import {
 
 type CategorySidebarProps = {
   readonly categoryPath: string;
+  readonly categoryHighlighted: boolean;
   readonly client: DnfApi | undefined;
   readonly navigation: NavigationSelection;
+  readonly onClearCategoryHighlight: () => void;
   readonly onSelect: (relativePath: string) => void;
   readonly onSelectNavigation: (selection: NavigationSelection) => void;
   readonly onRecycleBin: () => void;
@@ -47,7 +49,6 @@ type CategorySidebarProps = {
     targetRelativePath: string,
     items: readonly WorkspaceItemReference[],
   ) => void;
-  readonly onCreateCategory: () => void;
   readonly onCreateCategoryAt: (parentRelativePath: string, name: string) => Promise<string | null>;
   readonly onDeleteCategory: (relativePath: string, hasContents: boolean) => void;
   readonly onReorder: (
@@ -137,8 +138,12 @@ function childNames(
   categories: readonly ChildCategory[],
   relativePath: string,
 ): ReadonlySet<string> {
-  const category = findCategory(categories, relativePath);
-  return new Set((category?.childCategories ?? []).map((child) => child.name.toLocaleLowerCase()));
+  // 根级没有对应的 ChildCategory 节点，它的子级就是整棵树。
+  const children =
+    relativePath === ""
+      ? categories
+      : (findCategory(categories, relativePath)?.childCategories ?? []);
+  return new Set(children.map((child) => child.name.toLocaleLowerCase()));
 }
 
 function hueToHex(hue: number): string {
@@ -185,8 +190,10 @@ function hexToHue(color: string | undefined): number {
 
 export function CategorySidebar({
   categoryPath,
+  categoryHighlighted,
   client,
   navigation,
+  onClearCategoryHighlight,
   onSelect,
   onSelectNavigation,
   onRecycleBin,
@@ -195,7 +202,6 @@ export function CategorySidebar({
   onSettings,
   onMoveCategory,
   onMoveItems,
-  onCreateCategory,
   onCreateCategoryAt,
   onDeleteCategory,
   onReorder,
@@ -339,7 +345,7 @@ export function CategorySidebar({
     setItemDropTargetRelativePath(null);
   };
 
-  const updateCategoryDropTarget = (nextTarget: CategoryDropTarget): void => {
+  const updateCategoryDropTarget = (nextTarget: CategoryDropTarget | null): void => {
     if (dragState === null) return;
     draggingRef.current = true;
     setRootDropActive(false);
@@ -424,22 +430,28 @@ export function CategorySidebar({
     onMoveCategory(request);
   };
 
-  const createChildCategory = async (): Promise<void> => {
-    const target = contextMenu;
-    setContextMenu(null);
-    if (target === null) return;
-    const names = childNames(snapshot?.childCategories ?? [], target.relativePath);
+  const createCategoryIn = async (parentRelativePath: string): Promise<void> => {
+    const names = childNames(snapshot?.childCategories ?? [], parentRelativePath);
     let name = "新建文件夹";
     let suffix = 2;
     while (names.has(name.toLocaleLowerCase())) {
       name = `新建文件夹 ${suffix}`;
       suffix += 1;
     }
-    const relativePath = await onCreateCategoryAt(target.relativePath, name);
+    const relativePath = await onCreateCategoryAt(parentRelativePath, name);
     if (relativePath === null) return;
-    setExpandedPaths((current) => new Set([...current, target.relativePath]));
+    if (parentRelativePath !== "") {
+      setExpandedPaths((current) => new Set([...current, parentRelativePath]));
+    }
     onSelect(relativePath);
     setEditingRelativePath(relativePath);
+  };
+
+  const createChildCategory = async (): Promise<void> => {
+    const target = contextMenu;
+    setContextMenu(null);
+    if (target === null) return;
+    await createCategoryIn(target.relativePath);
   };
 
   const setFolderStyle = async (style: CategoryFolderStyle): Promise<void> => {
@@ -504,7 +516,8 @@ export function CategorySidebar({
       : snapshot.patches.length +
         snapshot.groups.length +
         (hasRecursiveItems ? 0 : countCategoryPatches(snapshot.childCategories));
-  const categorySelection = navigation.kind === "category" ? navigation.relativePath : "";
+  const categorySelection =
+    categoryHighlighted && navigation.kind === "category" ? navigation.relativePath : "";
 
   return (
     <nav
@@ -535,17 +548,31 @@ export function CategorySidebar({
           categoryHasPatches(snapshot?.childCategories ?? [], categoryPath),
         );
       }}
+      onPointerDown={(event) => {
+        // 点侧栏留白取消分类选中高亮（不清空导航，主区内容不变）。
+        // 行、按钮、菜单与树节点都算“有内容的位置”，落在它们上面不算点空白。
+        if (event.button !== 0) return;
+        if (
+          event.target instanceof Element &&
+          event.target.closest(
+            ".category-row, .category-node-line, .category-context-menu, button, input",
+          ) !== null
+        ) {
+          return;
+        }
+        onClearCategoryHighlight();
+      }}
       onPointerCancel={finishOrdering}
       onPointerUp={finishOrdering}
     >
       <div className="sidebar-heading">
         <span className="sidebar-commands">
           <button
-            aria-label="新建子分类"
+            aria-label="新建文件夹"
             className="icon-button compact"
             disabled={readOnly}
-            onClick={onCreateCategory}
-            title="新建子分类"
+            onClick={() => void createCategoryIn("")}
+            title="新建文件夹"
             type="button"
           >
             <FolderPlus size={15} />

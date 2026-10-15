@@ -42,7 +42,7 @@ type CategoryTreeProps = {
   ) => void;
   readonly onItemDragLeave: () => void;
   readonly onItemDragOver: (relativePath: string) => void;
-  readonly onCategoryDragOver: (target: CategoryDropTarget) => void;
+  readonly onCategoryDragOver: (target: CategoryDropTarget | null) => void;
   readonly onCategoryDragStart: (drag: CategoryDragState) => void;
   readonly onCancelRename: () => void;
   readonly onContextMenu: (relativePath: string, x: number, y: number) => void;
@@ -100,10 +100,9 @@ export function reorderedCategories(
   return next;
 }
 
-function dropPosition(event: React.PointerEvent<HTMLButtonElement>): CategoryDropPosition {
-  const rect = event.currentTarget.getBoundingClientRect();
-  if (rect.height <= 0 || !Number.isFinite(event.clientY)) return "after";
-  const offset = event.clientY - rect.top;
+function dropPosition(clientY: number, rect: DOMRect): CategoryDropPosition {
+  if (rect.height <= 0 || !Number.isFinite(clientY)) return "after";
+  const offset = clientY - rect.top;
   const edge = rect.height * 0.25;
   if (offset < edge) return "before";
   if (offset > rect.height - edge) return "after";
@@ -111,7 +110,7 @@ function dropPosition(event: React.PointerEvent<HTMLButtonElement>): CategoryDro
 }
 
 function resolveDropTarget(
-  event: React.PointerEvent<HTMLButtonElement>,
+  event: React.PointerEvent<HTMLDivElement>,
   category: ChildCategory,
   context: {
     readonly dragSourceRelativePath: string;
@@ -121,7 +120,10 @@ function resolveDropTarget(
 ): CategoryDropTarget | null {
   const { dragSourceRelativePath, parentRelativePath, visibleCategories } = context;
   if (isPathWithin(category.relativePath, dragSourceRelativePath)) return null;
-  const position = dropPosition(event);
+  // 上下 25% 的分区按「行」算：命中区是整行容器（含展开箭头与缩进），
+  // 用容器高度会让分区随子级展开而漂移。
+  const row = event.currentTarget.querySelector(":scope > .category-row") ?? event.currentTarget;
+  const position = dropPosition(event.clientY, row.getBoundingClientRect());
   const targetCategories = position === "inside" ? category.childCategories : visibleCategories;
   const withoutSource = targetCategories.filter(
     (candidate) => candidate.relativePath !== dragSourceRelativePath,
@@ -174,18 +176,26 @@ export function CategoryTree({
         const expanded = expandedPaths.has(category.relativePath);
         const itemDropTarget = itemDropTargetRelativePath === category.relativePath;
         const editing = editingRelativePath === category.relativePath;
-        const updateCategoryDragOver = (event: React.PointerEvent<HTMLButtonElement>): void => {
+        // 命中区是整个行容器而不是行按钮：展开箭头、箭头占位和缩进区都在行按钮之外，
+        // 挂在按钮上会导致指针落进这些区域时落点不更新（拖不进目标文件夹）。
+        // 落点判非法时必须回传 null，否则上一次的合法落点会残留到松手时执行。
+        const updateCategoryDragOver = (event: React.PointerEvent<HTMLDivElement>): void => {
           if (event.buttons !== 1 || dragSourceRelativePath === null) return;
-          const target = resolveDropTarget(event, category, {
-            dragSourceRelativePath,
-            parentRelativePath,
-            visibleCategories,
-          });
-          if (target !== null) onCategoryDragOver(target);
+          onCategoryDragOver(
+            resolveDropTarget(event, category, {
+              dragSourceRelativePath,
+              parentRelativePath,
+              visibleCategories,
+            }),
+          );
         };
         return (
           <div className="category-node" key={category.relativePath}>
-            <div className={`category-node-line ${hasChildren ? "has-toggle" : "leaf"}`}>
+            <div
+              className={`category-node-line ${hasChildren ? "has-toggle" : "leaf"}`}
+              onPointerEnter={updateCategoryDragOver}
+              onPointerMove={updateCategoryDragOver}
+            >
               {hasChildren ? (
                 <button
                   aria-label={`${expanded ? "折叠" : "展开"} ${category.name}`}
@@ -300,8 +310,6 @@ export function CategoryTree({
                       sourceRelativePath: category.relativePath,
                     });
                   }}
-                  onPointerEnter={updateCategoryDragOver}
-                  onPointerMove={updateCategoryDragOver}
                   type="button"
                 >
                   <CategoryFolderIcon

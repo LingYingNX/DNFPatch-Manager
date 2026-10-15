@@ -68,6 +68,7 @@ type ItemWorkspaceProps = {
   readonly loading: boolean;
   readonly onQueryChange: (query: string) => void;
   readonly onBoxSelect: (relativePaths: readonly string[]) => void;
+  readonly onClearCategoryHighlight: () => void;
   readonly onImportDropped: (files: readonly File[]) => void;
   readonly onRevealSource: (relativePath: string) => void;
   readonly onIncludeDescendantsChange: (include: boolean) => void;
@@ -383,7 +384,21 @@ export function ItemWorkspace(props: ItemWorkspaceProps): React.JSX.Element {
         ) {
           void commitRename();
         }
-        if (event.button !== 0 || isSelectionExcludedTarget(event.target)) {
+        if (event.button !== 0) {
+          return;
+        }
+        // 清分类选中高亮：凡不是落在卡片或控件上的左键点击都算点主区空白。
+        // 与下面的框选判断分开——框选还要排除 .empty-state，而空状态占满主区，
+        // 点它在用户看来就是点空白。
+        if (
+          !(event.target instanceof Element) ||
+          event.target.closest(
+            ".item-card, .workspace-heading, .item-context-menu, button, input, textarea, select, label",
+          ) === null
+        ) {
+          props.onClearCategoryHighlight();
+        }
+        if (isSelectionExcludedTarget(event.target)) {
           return;
         }
         event.preventDefault();

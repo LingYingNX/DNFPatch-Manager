@@ -14,30 +14,88 @@ describe("category commands", () => {
 
     expect(screen.queryByRole("button", { name: "重命名分类" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "删除分类" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "新建子分类" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "新建文件夹" })).toBeEnabled();
   });
 
-  it("creates a child category under the current category", async () => {
+  it("creates the folder at the root even while a category is selected", async () => {
     let request: Parameters<DnfApi["createCategory"]>[0] | undefined;
+    let created = false;
+    const nestedSnapshot = {
+      ...WORKSPACE_SNAPSHOT,
+      childCategories: [
+        ...(WORKSPACE_SNAPSHOT.childCategories ?? []),
+        {
+          name: "新建文件夹",
+          relativePath: "新建文件夹",
+          patchCount: 0,
+          childCategories: [],
+        },
+      ],
+    };
     const api: DnfApi = {
       ...createFakeApi(WORKSPACE_SNAPSHOT),
       createCategory: async (input) => {
         request = input;
-        return { ok: true, value: { relativePath: "分类A\\子分类" } };
+        created = true;
+        return { ok: true, value: { relativePath: "新建文件夹" } };
       },
+      scan: async ({ relativePath }) => ({
+        ok: true,
+        value: relativePath === "" && created ? nestedSnapshot : WORKSPACE_SNAPSHOT,
+      }),
     };
     render(<App api={api} />);
     const category = await screen.findByRole("button", { name: "分类A" });
     fireEvent.click(category);
     await waitFor(() => expect(category).toHaveClass("selected"));
 
-    fireEvent.click(screen.getByRole("button", { name: "新建子分类" }));
-    fireEvent.change(screen.getByRole("textbox", { name: "分类名称" }), {
-      target: { value: "子分类" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "确认" }));
+    fireEvent.click(screen.getByRole("button", { name: "新建文件夹" }));
 
-    await waitFor(() => expect(request).toEqual({ parentRelativePath: "分类A", name: "子分类" }));
+    await waitFor(() => expect(request).toEqual({ parentRelativePath: "", name: "新建文件夹" }));
+    expect(await screen.findByRole("textbox", { name: "重命名 新建文件夹" })).toBeInTheDocument();
+  });
+
+  it("creates the category at the library root when no category is selected", async () => {
+    let request: Parameters<DnfApi["createCategory"]>[0] | undefined;
+    const api: DnfApi = {
+      ...createFakeApi(WORKSPACE_SNAPSHOT),
+      createCategory: async (input) => {
+        request = input;
+        return { ok: true, value: { relativePath: input.name } };
+      },
+    };
+    render(<App api={api} />);
+    await screen.findByText("coat.npk");
+
+    fireEvent.click(screen.getByRole("button", { name: "新建文件夹" }));
+
+    await waitFor(() => expect(request).toEqual({ parentRelativePath: "", name: "新建文件夹" }));
+  });
+
+  it("avoids a root-level folder name already in use", async () => {
+    let request: Parameters<DnfApi["createCategory"]>[0] | undefined;
+    const api: DnfApi = {
+      ...createFakeApi({
+        ...WORKSPACE_SNAPSHOT,
+        childCategories: [
+          { name: "新建文件夹", relativePath: "新建文件夹", patchCount: 0, childCategories: [] },
+        ],
+      }),
+      createCategory: async (input) => {
+        request = input;
+        return { ok: true, value: { relativePath: input.name } };
+      },
+    };
+    const { container } = render(<App api={api} />);
+    await screen.findByText("coat.npk");
+
+    // 侧栏加号按钮：分类行也叫「新建文件夹」，只能按位置取。
+    const addButton = container.querySelector(".sidebar-commands button");
+    expect(addButton).not.toBeNull();
+    fireEvent.click(addButton as HTMLButtonElement);
+
+    // 根级已有同名目录时必须顺延到「新建文件夹 2」，否则后端会以 TARGET_CONFLICT 拒绝。
+    await waitFor(() => expect(request).toEqual({ parentRelativePath: "", name: "新建文件夹 2" }));
   });
 
   it("keeps destructive category commands hidden for a selected category", async () => {
@@ -48,7 +106,7 @@ describe("category commands", () => {
 
     expect(screen.queryByRole("button", { name: "重命名分类" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "删除分类" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "新建子分类" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "新建文件夹" })).toBeEnabled();
   });
 
   it("deletes an empty category directly from the Delete key", async () => {

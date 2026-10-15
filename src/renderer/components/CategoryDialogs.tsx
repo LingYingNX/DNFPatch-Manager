@@ -2,12 +2,11 @@ import { type FormEvent, useState } from "react";
 import { Dialog } from "./Dialog";
 import { CommandButton } from "./primitives";
 
-export type CategoryDialog = "create" | "rename" | "delete" | null;
+export type CategoryDialog = "rename" | "delete" | null;
 
 type CategoryDialogsProps = {
   readonly active: CategoryDialog;
   readonly categoryPath: string;
-  readonly createCategory: (name: string) => Promise<boolean>;
   readonly deleteCategory: () => Promise<boolean>;
   readonly hasContents: boolean;
   readonly onClose: () => void;
@@ -111,17 +110,11 @@ function DeleteDialog({
 export function CategoryDialogs({
   active,
   categoryPath,
-  createCategory,
   deleteCategory,
   hasContents,
   onClose,
   renameCategory,
 }: CategoryDialogsProps): React.JSX.Element | null {
-  if (active === "create") {
-    return (
-      <NameDialog action={createCategory} initialName="" onClose={onClose} title="新建子分类" />
-    );
-  }
   if (active === "rename") {
     return (
       <NameDialog

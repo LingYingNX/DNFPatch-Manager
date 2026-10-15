@@ -47,6 +47,9 @@ function moveTargets(snapshot: CategorySnapshot | null): readonly MoveTarget[] {
 
 export function WorkspaceApp({ client }: WorkspaceAppProps): React.JSX.Element {
   const [navigation, setNavigation] = useState<NavigationSelection>({ kind: "all" });
+  // 点空白只取消「选中高亮」，不改导航目标：主区内容与侧栏树保持原样，
+  // 效果对齐资源管理器里点空白取消选中项。
+  const [categoryHighlighted, setCategoryHighlighted] = useState(true);
   const workspaceScope =
     navigation.kind === "category"
       ? "category"
@@ -142,6 +145,7 @@ export function WorkspaceApp({ client }: WorkspaceAppProps): React.JSX.Element {
 
   const navigate = (next: NavigationSelection): void => {
     selection.clearSelection();
+    setCategoryHighlighted(true);
     setNavigation(next);
     workspace.setCategoryPath(
       next.kind === "category"
@@ -182,6 +186,7 @@ export function WorkspaceApp({ client }: WorkspaceAppProps): React.JSX.Element {
         onQueryChange={workspace.setQuery}
         onViewModeChange={setViewMode}
         onBoxSelect={selection.selectBox}
+        onClearCategoryHighlight={() => setCategoryHighlighted(false)}
         onImportDropped={(files) => void workspace.importDroppedPatches(files)}
         onRevealSource={(relativePath) => void workspace.revealPatch(relativePath)}
         onIncludeDescendantsChange={workspace.setIncludeDescendants}
@@ -318,10 +323,11 @@ export function WorkspaceApp({ client }: WorkspaceAppProps): React.JSX.Element {
       ) : null}
       <div className="workspace-layout">
         <CategorySidebar
+          categoryHighlighted={categoryHighlighted}
           categoryPath={workspace.categoryPath}
           client={client}
           navigation={navigation}
-          onCreateCategory={() => setCategoryDialog("create")}
+          onClearCategoryHighlight={() => setCategoryHighlighted(false)}
           onCreateCategoryAt={workspace.createCategoryAt}
           onDeleteCategory={(relativePath, hasContents) => {
             setCategoryDeletePath(relativePath);
@@ -375,7 +381,6 @@ export function WorkspaceApp({ client }: WorkspaceAppProps): React.JSX.Element {
       <CategoryDialogs
         active={categoryDialog}
         categoryPath={deletionTargetPath}
-        createCategory={workspace.createCategory}
         deleteCategory={() => workspace.deleteCategoryAt(deletionTargetPath)}
         hasContents={categoryDeleteHasContents}
         onClose={() => setCategoryDialog(null)}

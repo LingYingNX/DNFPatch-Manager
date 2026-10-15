@@ -51,9 +51,6 @@ export function useCategoryCommands({
     }
   };
 
-  const createCategory = async (name: string): Promise<boolean> =>
-    (await createCategoryAt(categoryPath, name)) !== null && (await scan(categoryPath));
-
   const renameCategoryAt = async (relativePath: string, name: string): Promise<string | null> => {
     if (client === undefined || relativePath === "") return null;
     try {
@@ -124,7 +121,6 @@ export function useCategoryCommands({
   };
 
   return {
-    createCategory,
     createCategoryAt,
     deleteCategoryAt,
     moveCategory,

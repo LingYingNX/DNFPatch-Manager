@@ -74,3 +74,52 @@ test("keeps folder rows to a border ring: hover light blue, selected purple", as
     await rm(runtimeRoot, { recursive: true, force: true });
   }
 });
+
+test("drops the selected ring when the sidebar or workspace blank space is pressed", async () => {
+  const projectRoot = resolve(import.meta.dirname, "../..");
+  const runtimeRoot = await mkdtemp(join(tmpdir(), "dnf-category-ring-blank-e2e-"));
+  const libraryRoot = join(runtimeRoot, "patch-categories");
+  await mkdir(join(libraryRoot, "分类A"), { recursive: true });
+  await mkdir(join(libraryRoot, "分类B"), { recursive: true });
+
+  const application = await electron.launch({
+    args: [`--user-data-dir=${join(runtimeRoot, "electron-data")}`, projectRoot],
+    cwd: runtimeRoot,
+  });
+  try {
+    const page = await application.firstWindow();
+    const workspace = page.getByRole("main", { name: "补丁工作区" });
+    await workspace.waitFor();
+    const folder = page.getByRole("button", { name: "分类A", exact: true });
+    await folder.waitFor();
+
+    // 侧栏留白：分类行下面的空白区（不是行、不是按钮）。
+    await folder.click();
+    await expect(folder).toHaveClass(/selected/u);
+    const sidebar = page.getByRole("navigation", { name: "补丁分类" });
+    const sidebarBox = await sidebar.boundingBox();
+    if (sidebarBox === null) throw new Error("Sidebar did not expose coordinates");
+    await page.mouse.click(
+      sidebarBox.x + sidebarBox.width / 2,
+      sidebarBox.y + sidebarBox.height - 12,
+    );
+    await expect(folder).not.toHaveClass(/selected/u);
+    // 环的实际画法由上面的用例覆盖；这里只确认它确实不再是选中环。
+    await expect.poll(() => rowRing(folder).then((ring) => ring.boxShadow)).not.toBe(SELECTED_RING);
+
+    // 主区留白：分类里没有补丁，空状态占满主区，点它同样是点空白。
+    await folder.click();
+    await expect(folder).toHaveClass(/selected/u);
+    const workspaceBox = await workspace.boundingBox();
+    if (workspaceBox === null) throw new Error("Workspace did not expose coordinates");
+    await page.mouse.click(workspaceBox.x + 12, workspaceBox.y + workspaceBox.height - 12);
+    await expect(folder).not.toHaveClass(/selected/u);
+
+    // 再点一次同一分类必须能重新选中：清高亮只影响这一轮的显示，不会卡死选中。
+    await folder.click();
+    await expect(folder).toHaveClass(/selected/u);
+  } finally {
+    await application.close();
+    await rm(runtimeRoot, { recursive: true, force: true });
+  }
+});

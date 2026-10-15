@@ -851,6 +851,62 @@ test("moves a nested category into another category from the tree", async () => 
   }
 });
 
+test("moves a category into a folder when the pointer lands on its expand toggle", async () => {
+  // 展开箭头是行按钮的兄弟节点，且所有箭头的 x 相同、行按钮都在它右侧。
+  // 指针沿着这条箭头列上下移动时一个行按钮都碰不到；命中区若只挂在行按钮上，
+  // 落点全程不更新，拖拽落空——这正是「有时候无法拖动到某个文件夹」。
+  const projectRoot = resolve(import.meta.dirname, "../..");
+  const runtimeRoot = await mkdtemp(join(tmpdir(), "dnf-category-toggle-move-e2e-"));
+  await mkdir(join(runtimeRoot, "patch-categories", "Female", "Male"), { recursive: true });
+  await mkdir(join(runtimeRoot, "patch-categories", "Interface"), { recursive: true });
+  await writeFile(join(runtimeRoot, "patch-categories", "Interface", "ui.npk"), "ui-payload");
+  const application = await electron.launch({
+    args: [`--user-data-dir=${join(runtimeRoot, "electron-data")}`, projectRoot],
+    cwd: runtimeRoot,
+  });
+
+  try {
+    const page = await application.firstWindow();
+    await page.getByRole("main", { name: "补丁工作区" }).waitFor();
+    const source = page.getByRole("button", { name: "Interface", exact: true });
+    // Female 保持折叠：箭头指向展开。
+    const toggle = page.getByRole("button", { name: "展开 Female", exact: true });
+    await expect(source).toBeVisible();
+    await expect(toggle).toBeVisible();
+    const sourceBox = await source.boundingBox();
+    const toggleBox = await toggle.boundingBox();
+    expect(sourceBox).not.toBeNull();
+    expect(toggleBox).not.toBeNull();
+    if (sourceBox === null || toggleBox === null) {
+      throw new Error("Category row or expand toggle did not expose pointer coordinates");
+    }
+
+    // 起手仍在行按钮上（拖拽只从那里开始），随后拐进箭头列，全程贴着箭头列移动。
+    const columnX = toggleBox.x + toggleBox.width / 2;
+    await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(columnX, sourceBox.y + sourceBox.height / 2);
+    await page.mouse.move(columnX, toggleBox.y + toggleBox.height / 2, { steps: 8 });
+    await page.mouse.up();
+
+    const movedCategory = join(runtimeRoot, "patch-categories", "Female", "Interface");
+    await expect
+      .poll(() =>
+        access(join(movedCategory, "ui.npk")).then(
+          () => true,
+          () => false,
+        ),
+      )
+      .toBe(true);
+    await expect(access(join(runtimeRoot, "patch-categories", "Interface"))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+  } finally {
+    await application.close();
+    await rm(runtimeRoot, { force: true, recursive: true, maxRetries: 5, retryDelay: 100 });
+  }
+});
+
 test("moves a nested category out to the root with the blank drop zone", async () => {
   const projectRoot = resolve(import.meta.dirname, "../..");
   const runtimeRoot = await mkdtemp(join(tmpdir(), "dnf-category-root-move-e2e-"));
@@ -904,6 +960,8 @@ test("moves a nested category out to the root with the blank drop zone", async (
 test("creates categories and deletes empty categories with Delete", async () => {
   const projectRoot = resolve(import.meta.dirname, "../..");
   const runtimeRoot = await mkdtemp(join(tmpdir(), "dnf-category-commands-e2e-"));
+  await mkdir(join(runtimeRoot, "patch-categories", "Alpha"), { recursive: true });
+  await mkdir(join(runtimeRoot, "patch-categories", "Beta"), { recursive: true });
   const application = await electron.launch({
     args: [`--user-data-dir=${join(runtimeRoot, "electron-data")}`, projectRoot],
     cwd: runtimeRoot,
@@ -912,9 +970,14 @@ test("creates categories and deletes empty categories with Delete", async () => 
   try {
     const page = await application.firstWindow();
     await page.getByRole("main", { name: "补丁工作区" }).waitFor();
-    await page.getByRole("button", { name: "新建子分类" }).click();
-    await page.getByRole("textbox", { name: "分类名称" }).fill("测试分类");
-    await page.getByRole("button", { name: "确认", exact: true }).click();
+    // 选中一个分类后点加号：新文件夹仍建在根级，且追加在根级末尾，不落进选中的分类。
+    const alpha = page.getByRole("button", { name: "Alpha", exact: true });
+    await alpha.click();
+    await expect(alpha).toHaveClass(/selected/u);
+    await page.getByRole("button", { name: "新建文件夹", exact: true }).click();
+    // 不再弹窗：直接建好「新建文件夹」并进入内联重命名，输入即改名。
+    await page.getByRole("textbox", { name: "重命名 新建文件夹" }).fill("测试分类");
+    await page.keyboard.press("Enter");
     const createdPath = join(runtimeRoot, "patch-categories", "测试分类");
     await expect
       .poll(() =>
@@ -924,6 +987,22 @@ test("creates categories and deletes empty categories with Delete", async () => 
         ),
       )
       .toBe(true);
+    await expect
+      .poll(() =>
+        access(join(runtimeRoot, "patch-categories", "Alpha", "测试分类")).then(
+          () => true,
+          () => false,
+        ),
+      )
+      .toBe(false);
+    const sidebar = page.getByRole("navigation", { name: "补丁分类" });
+    await expect
+      .poll(() =>
+        sidebar
+          .locator(".category-tree .category-row")
+          .evaluateAll((rows) => rows.map((row) => row.getAttribute("aria-label"))),
+      )
+      .toEqual(["Alpha", "Beta", "测试分类"]);
 
     await page.getByRole("button", { name: "测试分类", exact: true }).click();
     await expect(page.getByRole("button", { name: "重命名分类" })).toHaveCount(0);
