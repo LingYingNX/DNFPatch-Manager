@@ -19,8 +19,8 @@ const rowRect = {
   toJSON: () => ({}),
 };
 
-describe("category selection clearing", () => {
-  it("clears the selected ring when the sidebar blank space is pressed", async () => {
+describe("category selection highlight", () => {
+  it("keeps the selected ring when the sidebar blank space is pressed", async () => {
     render(<App api={createFakeApi(WORKSPACE_SNAPSHOT)} />);
 
     const category = await screen.findByRole("button", { name: "分类A" });
@@ -29,20 +29,10 @@ describe("category selection clearing", () => {
 
     fireEvent.pointerDown(screen.getByRole("navigation", { name: "补丁分类" }), { button: 0 });
 
-    expect(category).not.toHaveClass("selected");
-  });
-
-  it("keeps the ring when the category row itself is pressed", async () => {
-    render(<App api={createFakeApi(WORKSPACE_SNAPSHOT)} />);
-
-    const category = await screen.findByRole("button", { name: "分类A" });
-    fireEvent.click(category);
-    fireEvent.pointerDown(category, { button: 0, buttons: 1, pointerId: 1 });
-
     expect(category).toHaveClass("selected");
   });
 
-  it("clears the selected ring when the workspace blank space is pressed", async () => {
+  it("keeps the selected ring when the workspace blank space is pressed", async () => {
     render(<App api={createFakeApi(WORKSPACE_SNAPSHOT)} />);
 
     const category = await screen.findByRole("button", { name: "分类A" });
@@ -56,31 +46,26 @@ describe("category selection clearing", () => {
       pointerId: 1,
     });
 
-    expect(category).not.toHaveClass("selected");
-  });
-
-  it("keeps the ring when a patch card is pressed", async () => {
-    render(<App api={createFakeApi(WORKSPACE_SNAPSHOT)} />);
-
-    const category = await screen.findByRole("button", { name: "分类A" });
-    fireEvent.click(category);
-    const card = await screen.findByRole("button", { name: /coat\.npk/u });
-
-    fireEvent.pointerDown(card, { button: 0, clientY: 20, pointerId: 1 });
-
     expect(category).toHaveClass("selected");
   });
 
-  it("does not restore the ring when the same category is selected again", async () => {
-    render(<App api={createFakeApi(WORKSPACE_SNAPSHOT)} />);
-
+  it("keeps the selected ring after entering a patch group", async () => {
+    const snapshot = {
+      ...WORKSPACE_SNAPSHOT,
+      groups: WORKSPACE_SNAPSHOT.groups.map((group) => ({
+        ...group,
+        categoryRelativePath: "分类A",
+      })),
+    };
+    render(<App api={createFakeApi(snapshot)} />);
     const category = await screen.findByRole("button", { name: "分类A" });
     fireEvent.click(category);
-    fireEvent.pointerDown(screen.getByRole("navigation", { name: "补丁分类" }), { button: 0 });
-    expect(category).not.toHaveClass("selected");
+    expect(category).toHaveClass("selected");
 
-    fireEvent.click(category);
+    fireEvent.contextMenu(await screen.findByRole("button", { name: /^套装/u }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "进入组" }));
 
+    await screen.findByRole("button", { name: "返回组" });
     expect(category).toHaveClass("selected");
   });
 });

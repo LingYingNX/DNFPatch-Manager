@@ -75,7 +75,7 @@ test("keeps folder rows to a border ring: hover light blue, selected purple", as
   }
 });
 
-test("drops the selected ring when the sidebar or workspace blank space is pressed", async () => {
+test("keeps the selected ring when the sidebar or workspace blank space is pressed", async () => {
   const projectRoot = resolve(import.meta.dirname, "../..");
   const runtimeRoot = await mkdtemp(join(tmpdir(), "dnf-category-ring-blank-e2e-"));
   const libraryRoot = join(runtimeRoot, "patch-categories");
@@ -103,9 +103,9 @@ test("drops the selected ring when the sidebar or workspace blank space is press
       sidebarBox.x + sidebarBox.width / 2,
       sidebarBox.y + sidebarBox.height - 12,
     );
-    await expect(folder).not.toHaveClass(/selected/u);
-    // 环的实际画法由上面的用例覆盖；这里只确认它确实不再是选中环。
-    await expect.poll(() => rowRing(folder).then((ring) => ring.boxShadow)).not.toBe(SELECTED_RING);
+    await expect(folder).toHaveClass(/selected/u);
+    // 环的实际画法由上面的用例覆盖；这里只确认它仍然保持选中环。
+    await expect.poll(() => rowRing(folder).then((ring) => ring.boxShadow)).toBe(SELECTED_RING);
 
     // 主区留白：分类里没有补丁，空状态占满主区，点它同样是点空白。
     await folder.click();
@@ -113,9 +113,9 @@ test("drops the selected ring when the sidebar or workspace blank space is press
     const workspaceBox = await workspace.boundingBox();
     if (workspaceBox === null) throw new Error("Workspace did not expose coordinates");
     await page.mouse.click(workspaceBox.x + 12, workspaceBox.y + workspaceBox.height - 12);
-    await expect(folder).not.toHaveClass(/selected/u);
+    await expect(folder).toHaveClass(/selected/u);
 
-    // 再点一次同一分类必须能重新选中：清高亮只影响这一轮的显示，不会卡死选中。
+    // 再次点击同一分类仍保持选中。
     await folder.click();
     await expect(folder).toHaveClass(/selected/u);
   } finally {

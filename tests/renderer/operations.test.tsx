@@ -44,6 +44,15 @@ function withPatchRelativePath(snapshot: CategorySnapshot, relativePath: string)
 }
 
 describe("workspace operations", () => {
+  it("shows no native hover tooltip on patch cards", async () => {
+    render(<App api={createFakeApi(WORKSPACE_SNAPSHOT)} />);
+    await screen.findByText("coat.npk");
+
+    const card = itemButton("coat.npk");
+    expect(card).not.toHaveAttribute("title");
+    expect(card).toHaveAccessibleName("coat.npk");
+  });
+
   it("toggles a card without selecting it", async () => {
     let enabledRequest: Parameters<DnfApi["enableItems"]>[0] | undefined;
     const api: DnfApi = {

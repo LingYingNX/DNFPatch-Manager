@@ -34,10 +34,8 @@ import {
 
 type CategorySidebarProps = {
   readonly categoryPath: string;
-  readonly categoryHighlighted: boolean;
   readonly client: DnfApi | undefined;
   readonly navigation: NavigationSelection;
-  readonly onClearCategoryHighlight: () => void;
   readonly onSelect: (relativePath: string) => void;
   readonly onSelectNavigation: (selection: NavigationSelection) => void;
   readonly onRecycleBin: () => void;
@@ -190,10 +188,8 @@ function hexToHue(color: string | undefined): number {
 
 export function CategorySidebar({
   categoryPath,
-  categoryHighlighted,
   client,
   navigation,
-  onClearCategoryHighlight,
   onSelect,
   onSelectNavigation,
   onRecycleBin,
@@ -517,7 +513,11 @@ export function CategorySidebar({
         snapshot.groups.length +
         (hasRecursiveItems ? 0 : countCategoryPatches(snapshot.childCategories));
   const categorySelection =
-    categoryHighlighted && navigation.kind === "category" ? navigation.relativePath : "";
+    navigation.kind === "category"
+      ? navigation.relativePath
+      : navigation.kind === "group"
+        ? navigation.categoryRelativePath
+        : "";
 
   return (
     <nav
@@ -547,20 +547,6 @@ export function CategorySidebar({
           categoryPath,
           categoryHasPatches(snapshot?.childCategories ?? [], categoryPath),
         );
-      }}
-      onPointerDown={(event) => {
-        // 点侧栏留白取消分类选中高亮（不清空导航，主区内容不变）。
-        // 行、按钮、菜单与树节点都算“有内容的位置”，落在它们上面不算点空白。
-        if (event.button !== 0) return;
-        if (
-          event.target instanceof Element &&
-          event.target.closest(
-            ".category-row, .category-node-line, .category-context-menu, button, input",
-          ) !== null
-        ) {
-          return;
-        }
-        onClearCategoryHighlight();
       }}
       onPointerCancel={finishOrdering}
       onPointerUp={finishOrdering}
