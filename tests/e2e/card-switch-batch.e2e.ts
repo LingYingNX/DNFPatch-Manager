@@ -64,7 +64,9 @@ test("toggles every selected card from a single card switch", async () => {
     // 选区必须保留，否则下一次点击会退化成只改这一张。
     await expect(selectedCards).toHaveCount(3);
 
-    await firstSwitch.click();
+    // 右键菜单首项与卡片开关同源：按右键那张卡片的当前状态取反，并作用于整个选区。
+    await first.click({ button: "right" });
+    await page.getByRole("menuitem", { name: "停用", exact: true }).click();
     for (const name of ["a.npk", "b.npk", "c.npk"]) {
       await expect(page.getByRole("checkbox", { name: `启用 ${name}` })).not.toBeChecked();
     }

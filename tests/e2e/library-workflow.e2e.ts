@@ -659,6 +659,12 @@ test("keeps every folder move target selectable for a descendant patch", async (
     await expect
       .poll(() => childTarget.evaluate((element) => getComputedStyle(element).opacity))
       .toBe("1");
+    // 可继续展开的目标与同层叶子项必须同色：父项独亮一档会让没有下级的项看着像被禁用。
+    // 先把指针移开，否则父项还带着悬停态，比出来的是两种状态而不是两种层级。
+    await page.mouse.move(400, 700);
+    await expect
+      .poll(() => parentTarget.evaluate((element) => getComputedStyle(element).color))
+      .toBe(await childTarget.evaluate((element) => getComputedStyle(element).color));
   } finally {
     await application.close();
     await rm(runtimeRoot, { force: true, recursive: true, maxRetries: 5, retryDelay: 100 });

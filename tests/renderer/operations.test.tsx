@@ -112,7 +112,7 @@ describe("workspace operations", () => {
     const labels = within(menu)
       .getAllByRole("menuitem")
       .map((item) => item.querySelector(".item-context-menu-label")?.textContent);
-    expect(labels).toEqual(["移动", "打组", "加入预设", "重命名", "源文件", "删除"]);
+    expect(labels).toEqual(["停用", "移动", "打组", "加入预设", "重命名", "源文件", "删除"]);
     expect(
       Array.from(menu.querySelectorAll(".item-context-menu-shortcut")).map(
         (shortcut) => shortcut.textContent,
@@ -153,6 +153,59 @@ describe("workspace operations", () => {
     fireEvent.click(screen.getByRole("checkbox", { name: "启用 sword.npk" }));
 
     // 已启用的 coat.npk 不进请求，只有真正需要变更的 sword.npk 被提交。
+    await waitFor(() =>
+      expect(enabledRequest).toEqual({ items: [{ kind: "patch", relativePath: "sword.npk" }] }),
+    );
+  });
+
+  it("labels the context menu entry by the card state and toggles the whole selection", async () => {
+    let disabledRequest: Parameters<DnfApi["disableItems"]>[0] | undefined;
+    const api: DnfApi = {
+      ...createFakeApi(WORKSPACE_SNAPSHOT),
+      disableItems: async (request) => {
+        disabledRequest = request;
+        return { ok: true, value: { removedCount: request.items.length } };
+      },
+    };
+    render(<App api={api} />);
+    await screen.findByText("coat.npk");
+
+    // coat.npk 已启用、sword.npk 未启用：右键已启用的那张，条目应显示「停用」。
+    fireEvent.click(itemButton("coat.npk"));
+    fireEvent.click(itemButton("sword.npk"), { ctrlKey: true });
+    fireEvent.contextMenu(itemButton("coat.npk"));
+
+    const menu = screen.getByRole("menu");
+    expect(within(menu).getByRole("menuitem", { name: "停用" })).toBeEnabled();
+    fireEvent.click(within(menu).getByRole("menuitem", { name: "停用" }));
+
+    // 与卡片开关一致：作用于整个选区，但已处于目标状态的条目不进请求
+    // （sword.npk 本就未启用，停用它无需落盘）。
+    await waitFor(() =>
+      expect(disabledRequest).toEqual({
+        items: [{ kind: "patch", relativePath: "coat.npk" }],
+      }),
+    );
+  });
+
+  it("enables a single unenabled card from the context menu", async () => {
+    let enabledRequest: Parameters<DnfApi["enableItems"]>[0] | undefined;
+    const api: DnfApi = {
+      ...createFakeApi(WORKSPACE_SNAPSHOT),
+      enableItems: async (request) => {
+        enabledRequest = request;
+        return { ok: true, value: { installedCount: request.items.length } };
+      },
+    };
+    render(<App api={api} />);
+    await screen.findByText("coat.npk");
+
+    fireEvent.contextMenu(itemButton("sword.npk"));
+
+    const menu = screen.getByRole("menu");
+    expect(within(menu).getByRole("menuitem", { name: "启用" })).toBeEnabled();
+    fireEvent.click(within(menu).getByRole("menuitem", { name: "启用" }));
+
     await waitFor(() =>
       expect(enabledRequest).toEqual({ items: [{ kind: "patch", relativePath: "sword.npk" }] }),
     );
@@ -437,7 +490,7 @@ describe("workspace operations", () => {
       within(menu)
         .getAllByRole("menuitem")
         .map((item) => item.textContent),
-    ).toEqual(["移动", "进入组", "解散组", "加入预设", "重命名", "删除"]);
+    ).toEqual(["启用", "移动", "进入组", "解散组", "加入预设", "重命名", "删除"]);
     fireEvent.click(within(menu).getByRole("menuitem", { name: "进入组" }));
 
     await waitFor(() =>

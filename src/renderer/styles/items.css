@@ -486,15 +486,6 @@
   color: currentColor;
 }
 
-/* 可继续展开的目标不是禁用项，未悬停时也保持可操作的高对比文字。 */
-.item-context-menu-item.element.has-children:not(:disabled) {
-  color: var(--menu-text-strong-color);
-}
-
-.item-context-menu-item.element.has-children:not(:disabled) .item-context-menu-icon {
-  color: var(--menu-accent-strong-color);
-}
-
 .item-context-menu-label {
   min-width: 0;
   flex: 1 1 auto;

@@ -11,6 +11,8 @@ import {
   PackageOpen,
   Pencil,
   Plus,
+  Power,
+  PowerOff,
   Search,
   Trash2,
   Ungroup,
@@ -274,11 +276,34 @@ export function ItemWorkspace(props: ItemWorkspaceProps): React.JSX.Element {
     props.onBoxSelect(paths);
   };
 
+  /** 右键菜单的启用/停用项：与卡片右下角开关同一行为——按右键那张卡片的当前状态取反，
+      多选时作用于整个选区；菜单宽度装不下 aria-label 里的条目名，所以标签只写动词。 */
+  const enableToggleAction = (menu: ContextMenuState): ContextMenuAction => {
+    const enabled = !menu.item.enabled;
+    // 与卡片开关同一套忙碌判据：本条目在途或整个工作区正忙时都不可点。
+    const busy =
+      props.operationBusy ||
+      menu.selectedItems.some((item) => props.busyItemKeys.has(workspaceItemKey(item)));
+    return {
+      disabled: busy,
+      icon: enabled ? <Power size={16} /> : <PowerOff size={16} />,
+      label: enabled ? "启用" : "停用",
+      onClick: () => {
+        if (menu.selectedItems.length > 1) {
+          props.onSetItemsEnabled(menu.selectedItems, enabled);
+          return;
+        }
+        props.onSetItemEnabled(menu.item, enabled);
+      },
+    };
+  };
+
   const contextActions: readonly ContextMenuAction[] =
     contextMenu === null
       ? []
       : contextMenu.item.kind === "group"
         ? [
+            enableToggleAction(contextMenu),
             {
               icon: <FolderInput size={16} />,
               label: "\u79fb\u52a8",
@@ -322,6 +347,7 @@ export function ItemWorkspace(props: ItemWorkspaceProps): React.JSX.Element {
             },
           ]
         : [
+            enableToggleAction(contextMenu),
             {
               icon: <FolderInput size={16} />,
               label: "\u79fb\u52a8",

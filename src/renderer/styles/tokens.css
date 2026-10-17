@@ -123,11 +123,9 @@
      视觉角色，两处曾经各自写死同一批 slate/indigo/rose 值，改一处会漏另一处。 */
   --menu-text-color: #cbd5e1;
   --menu-text-hover-color: #ffffff;
-  --menu-text-strong-color: #f1f5f9;
   --menu-text-soft-hover-color: #e2e8f0;
   --menu-muted-color: #94a3b8;
   --menu-accent-color: #a5b4fc;
-  --menu-accent-strong-color: #c7d2fe;
   --menu-danger-color: #fb7185;
   --menu-danger-hover-color: #fda4af;
   /* 菜单自己的底色与危险操作底色：补丁库菜单（items.css）与分类树菜单（layout.css）
