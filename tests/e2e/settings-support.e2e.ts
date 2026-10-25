@@ -41,6 +41,16 @@ test("renders the community entries within the settings dialog", async () => {
     await expect(bilibiliCard).toBeVisible();
     await expect(bilibiliButton).toBeVisible();
 
+    const changelog = dialog.locator(".settings-changelog-box");
+    await changelog.scrollIntoViewIfNeeded();
+    const changelogMetrics = await changelog.evaluate((element) => ({
+      clientHeight: element.clientHeight,
+      overflowY: getComputedStyle(element).overflowY,
+      scrollHeight: element.scrollHeight,
+    }));
+    expect(changelogMetrics.overflowY).toBe("auto");
+    expect(changelogMetrics.scrollHeight).toBeGreaterThan(changelogMetrics.clientHeight);
+
     const [dialogBox, supportCardBox, bilibiliCardBox, supportButtonBox, bilibiliButtonBox] =
       await Promise.all([
         dialog.boundingBox(),

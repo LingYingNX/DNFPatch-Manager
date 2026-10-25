@@ -5,51 +5,19 @@ import { APP_RELEASE_NOTES, APP_VERSION } from "../../shared/contracts";
 import { type ApiResult, IPC_CHANNELS } from "../../shared/ipc-contracts";
 import type { UpdateCheckResult, UpdateEvent } from "../../shared/update-contracts";
 import { apiError } from "./api-result";
+import { normalizeReleaseNotes, selectReleaseNotes } from "./release-notes";
 
 type AutoUpdater = import("electron-updater").NsisUpdater;
 
 // electron-updater 只有 CommonJS 入口，且实例化时要读 app.getVersion()，
 // 所以必须用 createRequire 且在打包环境里惰性加载。
 const requireCjs = createRequire(import.meta.url);
-const GITHUB_RELEASE_API = "https://api.github.com/repos/LingYingNX/DNFguanliqi/releases/tags";
+const GITHUB_RELEASE_API = "https://api.github.com/repos/LingYingNX/DNFPatch-Manager/releases/tags";
 
 const loadAutoUpdater = (): AutoUpdater =>
   (requireCjs("electron-updater") as typeof import("electron-updater")).autoUpdater as AutoUpdater;
 
 const ok = <T>(value: T): ApiResult<T> => ({ ok: true, value });
-
-const stripReleaseNoteMarkup = (value: string): string =>
-  value
-    .replace(/<br\s*\/?>/giu, "\n")
-    .replace(/<\/p>\s*<p>/giu, "\n")
-    .replace(/<[^>]+>/gu, "")
-    .replace(/&amp;/giu, "&")
-    .replace(/&lt;/giu, "<")
-    .replace(/&gt;/giu, ">")
-    .replace(/&quot;/giu, '"')
-    .replace(/&#39;/giu, "'")
-    .replace(/&nbsp;/giu, " ");
-
-const normalizeReleaseNotes = (value: unknown): string[] => {
-  if (typeof value === "string") {
-    return value
-      .split(/\r?\n/u)
-      .map((line) =>
-        stripReleaseNoteMarkup(line)
-          .trim()
-          .replace(/^[-*•]\s*/u, "")
-          .replace(/^#{1,6}\s*/u, "")
-          .trim(),
-      )
-      .filter((line) => line.length > 0);
-  }
-  if (!Array.isArray(value)) return [];
-  return value.flatMap((entry) => {
-    if (typeof entry !== "object" || entry === null || !("note" in entry)) return [];
-    const note = entry.note;
-    return typeof note === "string" ? normalizeReleaseNotes(note) : [];
-  });
-};
 
 const fetchGithubReleaseNotes = (version: string): Promise<string[]> =>
   new Promise((resolve) => {
@@ -101,10 +69,14 @@ const fetchGithubReleaseNotes = (version: string): Promise<string[]> =>
   });
 
 const resolveReleaseNotes = async (version: string, value: unknown): Promise<string[]> => {
-  const notes = normalizeReleaseNotes(value);
-  if (notes.length > 0) return notes;
   const githubNotes = await fetchGithubReleaseNotes(version);
-  return githubNotes.length > 0 || version !== APP_VERSION ? githubNotes : [...APP_RELEASE_NOTES];
+  return selectReleaseNotes(
+    version,
+    normalizeReleaseNotes(value),
+    githubNotes,
+    APP_VERSION,
+    APP_RELEASE_NOTES,
+  );
 };
 
 export function registerUpdateIpc(window: BrowserWindow, isPackaged: boolean): void {

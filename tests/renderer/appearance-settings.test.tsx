@@ -8,6 +8,10 @@ import { createFakeApi, WORKSPACE_SNAPSHOT } from "./fake-api";
 
 const tokensCss = readFileSync(resolve(process.cwd(), "src/renderer/styles/tokens.css"), "utf8");
 const layoutCss = readFileSync(resolve(process.cwd(), "src/renderer/styles/layout.css"), "utf8");
+const settingsCss = readFileSync(
+  resolve(process.cwd(), "src/renderer/styles/settings.css"),
+  "utf8",
+);
 
 describe("appearance settings", () => {
   afterEach(cleanup);
@@ -128,6 +132,45 @@ describe("appearance settings", () => {
     const progress = within(settingsDialog).getByRole("progressbar", { name: "更新进度" });
     await waitFor(() => expect(progress).toHaveValue(100));
     expect(within(settingsDialog).getByRole("button", { name: "重启安装" })).toBeInTheDocument();
+  });
+
+  it("renders GitHub release Markdown with grouped sections and a scrollable notes box", async () => {
+    const api = createFakeApi(WORKSPACE_SNAPSHOT);
+    const check = async () => ({
+      ok: true as const,
+      value: {
+        currentVersion: "1.1.0",
+        latestVersion: "1.2.0",
+        updateAvailable: true,
+        releaseNotes: [
+          "## 更新日志",
+          "",
+          "【新增】",
+          "- 第一项",
+          "- 第二项",
+          "",
+          "【修复】",
+          "- 第三项",
+        ],
+      },
+    });
+    render(<App api={{ ...api, update: { ...api.update, check } }} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "设置" }));
+    fireEvent.click(screen.getByRole("tab", { name: "关于软件" }));
+    const settingsDialog = screen.getByRole("dialog", { name: "设置" });
+    fireEvent.click(within(settingsDialog).getByRole("button", { name: "检查更新" }));
+
+    const notesBox = settingsDialog.querySelector<HTMLElement>(".settings-changelog-box");
+    expect(notesBox).not.toBeNull();
+    if (notesBox === null) throw new Error("Release notes box is missing");
+    expect(
+      within(notesBox).getByRole("heading", { level: 4, name: "更新日志" }),
+    ).toBeInTheDocument();
+    expect(within(notesBox).getAllByRole("list")).toHaveLength(2);
+    expect(within(notesBox).getAllByRole("listitem")).toHaveLength(3);
+    expect(settingsCss).toContain(".settings-changelog-box::-webkit-scrollbar");
+    expect(settingsCss).toMatch(/\.settings-changelog-box \{[\s\S]*overflow-y: auto;/u);
   });
 
   it("hides the update notice when no update is available", async () => {

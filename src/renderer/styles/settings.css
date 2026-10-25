@@ -289,28 +289,81 @@
 }
 
 .settings-changelog-box {
-  /* 固定高度给更新说明留出充足阅读空间，条目超出时框内滚动。 */
+  /* GitHub Release 正文可能持续增长，固定视口保证底部操作区不被挤出。 */
   height: 280px;
+  overflow-x: hidden;
   overflow-y: auto;
   padding: 12px 14px;
   border: 1px solid color-mix(in srgb, var(--color-border-strong) 68%, transparent);
   border-radius: var(--radius-control);
   background: color-mix(in srgb, var(--color-canvas) 32%, transparent);
   scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+  --settings-changelog-scrollbar-activation: 0;
 }
 
-.settings-changelog {
+.settings-changelog-box::-webkit-scrollbar {
+  width: 4px;
+}
+
+.settings-changelog-box::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.settings-changelog-box::-webkit-scrollbar-thumb {
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    180deg,
+    rgb(
+      var(--scrollbar-thumb-start-rgb) /
+      calc(18% + 82% * var(--settings-changelog-scrollbar-activation))
+    ),
+    rgb(
+      var(--scrollbar-thumb-mid-rgb) /
+      calc(20% + 80% * var(--settings-changelog-scrollbar-activation))
+    ),
+    rgb(
+      var(--scrollbar-thumb-end-rgb) /
+      calc(22% + 78% * var(--settings-changelog-scrollbar-activation))
+    )
+  );
+  transition: background 220ms var(--easing-standard);
+}
+
+.settings-changelog-box:hover {
+  --settings-changelog-scrollbar-activation: 1;
+}
+
+.settings-changelog-markdown {
   display: grid;
-  gap: 5px;
-  margin: 0;
-  padding: 0 0 0 17px;
+  gap: 10px;
   color: var(--color-text-primary);
-  /* 更新说明是全应用最小的正文，11px/1.45 在 280px 高的滚动框里读着吃力。 */
   font-size: var(--font-sm);
   line-height: 1.6;
 }
 
-.settings-changelog li::marker {
+.settings-changelog-markdown :is(h4, h5, h6, p, ul) {
+  margin: 0;
+}
+
+.settings-changelog-markdown h4 {
+  font-size: var(--font-base);
+  font-weight: 700;
+}
+
+.settings-changelog-markdown :is(h5, h6) {
+  color: var(--color-text-secondary);
+  font-size: var(--font-sm);
+  font-weight: 700;
+}
+
+.settings-changelog-markdown ul {
+  display: grid;
+  gap: 5px;
+  padding-left: 17px;
+}
+
+.settings-changelog-markdown li::marker {
   color: var(--color-primary-hover);
 }
 

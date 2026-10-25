@@ -13,7 +13,7 @@ import {
   Sparkles,
   Users,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import type { AppUpdate } from "../workspace/useAppUpdate";
 import { Dialog } from "./Dialog";
 import { CommandButton } from "./primitives";
@@ -83,6 +83,67 @@ const PROJECT_LINKS = [
     url: "https://qm.qq.com/q/ZxPw28W7eg",
   },
 ] as const;
+
+function ReleaseNoteHeading({
+  level,
+  text,
+}: {
+  readonly level: number;
+  readonly text: string;
+}): React.JSX.Element {
+  if (level <= 2) return <h4>{text}</h4>;
+  if (level === 3) return <h5>{text}</h5>;
+  return <h6>{text}</h6>;
+}
+
+function ReleaseNotes({ lines }: { readonly lines: readonly string[] }): React.JSX.Element {
+  if (lines.every((line) => line.trim() === "")) return <p>暂无发行说明</p>;
+
+  const blocks: ReactNode[] = [];
+  let bullets: string[] = [];
+  const flushBullets = (): void => {
+    if (bullets.length === 0) return;
+    const items = bullets;
+    bullets = [];
+    blocks.push(
+      <ul key={`list-${blocks.length}`}>
+        {items.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>,
+    );
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed === "") {
+      flushBullets();
+      continue;
+    }
+    const heading = /^(#{1,6})\s+(.+)$/u.exec(trimmed);
+    if (heading !== null) {
+      flushBullets();
+      blocks.push(
+        <ReleaseNoteHeading
+          key={`heading-${blocks.length}`}
+          level={heading[1]?.length ?? 1}
+          text={heading[2] ?? ""}
+        />,
+      );
+      continue;
+    }
+    const bullet = /^[-*+]\s+(.+)$/u.exec(trimmed);
+    if (bullet !== null) {
+      bullets.push(bullet[1] ?? "");
+      continue;
+    }
+    flushBullets();
+    blocks.push(<p key={`paragraph-${blocks.length}`}>{trimmed}</p>);
+  }
+  flushBullets();
+
+  return <>{blocks}</>;
+}
 
 function updateStatusText(update: AppUpdate): string | null {
   const latestVersion = update.latestVersion === null ? "" : ` v${update.latestVersion}`;
@@ -272,13 +333,9 @@ export function SettingsDialog(props: Props): React.JSX.Element {
                   </div>
                   <div className="settings-changelog-heading">更新说明</div>
                   <div className="settings-changelog-box">
-                    <ul className="settings-changelog">
-                      {update.releaseNotes.length > 0 ? (
-                        update.releaseNotes.map((entry) => <li key={entry}>{entry}</li>)
-                      ) : (
-                        <li>暂无发行说明</li>
-                      )}
-                    </ul>
+                    <div className="settings-changelog-markdown">
+                      <ReleaseNotes lines={update.releaseNotes} />
+                    </div>
                   </div>
                   <div className="settings-update-footer">
                     {showStatusArea ? (
