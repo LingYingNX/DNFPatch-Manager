@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { _electron as electron, expect, test } from "@playwright/test";
 
-test("selects patch cards by dragging from empty workspace space", async () => {
+test("selects patch cards by drag box and Ctrl+A", async () => {
   const projectRoot = resolve(import.meta.dirname, "../..");
   const runtimeRoot = await mkdtemp(join(tmpdir(), "dnf-workspace-selection-e2e-"));
   const libraryRoot = join(runtimeRoot, "patch-categories");
@@ -24,6 +24,11 @@ test("selects patch cards by dragging from empty workspace space", async () => {
     const workspace = page.locator("main.patch-workspace");
     const cards = page.locator(".item-grid .item-card");
     await expect(cards).toHaveCount(3);
+
+    await page.keyboard.press("Control+A");
+    for (let index = 0; index < 3; index += 1) {
+      await expect(cards.nth(index)).toHaveAttribute("aria-pressed", "true");
+    }
 
     const workspaceBox = await workspace.boundingBox();
     const firstCardBox = await cards.nth(0).boundingBox();

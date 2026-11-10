@@ -67,12 +67,13 @@ async function scanPatchFiles(
   relativePath: string,
   fileNames: readonly string[],
   excludedRelativePaths: ReadonlySet<string> = new Set(),
-  includedFileNames: ReadonlySet<string> | undefined = undefined,
+  includedFileNames: readonly string[] | undefined = undefined,
 ): Promise<PatchItem[]> {
-  const patchNames = fileNames.filter(
+  const availableNames = new Set(fileNames.map(pathKey));
+  const patchNames = (includedFileNames ?? fileNames).filter(
     (name) =>
       isLibraryPatchPath(name) &&
-      (includedFileNames === undefined || includedFileNames.has(pathKey(name))) &&
+      (includedFileNames === undefined || availableNames.has(pathKey(name))) &&
       !excludedRelativePaths.has(pathKey(win32.join(relativePath, name))),
   );
   return Promise.all(
@@ -288,14 +289,13 @@ export async function scanGroup(
         ),
       )
       .map((member) => win32.basename(member))
-      .filter(isLibraryPatchPath)
-      .sort((left, right) => left.localeCompare(right, "zh-CN"));
+      .filter(isLibraryPatchPath);
     const patches = await scanPatchFiles(
       category.value,
       group.value.categoryRelativePath,
       fileNames,
       new Set(),
-      new Set(memberNames.map(pathKey)),
+      memberNames,
     );
     return ok({
       group: virtualGroupItem(group.value, patches.length),

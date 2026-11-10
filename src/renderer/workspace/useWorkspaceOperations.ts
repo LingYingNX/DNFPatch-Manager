@@ -229,6 +229,35 @@ export function useWorkspaceOperations({
     }
   };
 
+  const removeGroupMembers = async (
+    groupId: string,
+    patches: readonly WorkspaceItemReference[],
+  ): Promise<{ readonly dissolved: boolean; readonly id: string } | null> => {
+    const api = withClient();
+    const patchRelativePaths = patches.flatMap((item) =>
+      item.kind === "patch" ? [item.relativePath] : [],
+    );
+    if (api === null || patchRelativePaths.length === 0) return null;
+    try {
+      const result = await api.removeGroupMembers({ groupId, patchRelativePaths });
+      if (!result.ok) {
+        reportFailure(result.error.message);
+        return null;
+      }
+      if (result.value.dissolved) {
+        clearSelection();
+        return result.value;
+      }
+      return (await finish()) ? result.value : null;
+    } catch (error) {
+      if (error instanceof Error) {
+        reportFailure("移出补丁组失败，磁盘内容未被修改。");
+        return null;
+      }
+      throw error;
+    }
+  };
+
   const recycle = async (): Promise<boolean> => {
     const api = withClient();
     if (api === null || selectedItems.length === 0) {
@@ -300,6 +329,7 @@ export function useWorkspaceOperations({
     move,
     moveItems,
     recycle,
+    removeGroupMembers,
     rename,
     renameItem,
     restoreRecycleItems,

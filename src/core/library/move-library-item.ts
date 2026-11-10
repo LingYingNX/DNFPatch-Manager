@@ -9,6 +9,7 @@ import { executeFileTransaction } from "../filesystem/file-transaction";
 import { pathExists } from "../filesystem/path-exists";
 import {
   createVirtualGroupService,
+  type GroupMemberReplacement,
   type GroupRelocation,
   type VirtualGroupService,
   type VirtualGroupServiceError,
@@ -49,6 +50,7 @@ export type MoveLibraryItemError =
 
 export type GroupStateUpdate = {
   readonly memberRelativePathsToRemove: readonly string[];
+  readonly memberRelativePathReplacements: readonly GroupMemberReplacement[];
   readonly relocations: readonly GroupRelocation[];
 };
 
@@ -207,6 +209,7 @@ export async function prepareMoveLibraryItem(
       };
       const groupStateUpdate: GroupStateUpdate = {
         memberRelativePathsToRemove: [],
+        memberRelativePathReplacements: [],
         relocations: [relocation],
       };
       const statePlan = overrides.deferGroupState
@@ -269,14 +272,19 @@ export async function prepareMoveLibraryItem(
     const sourceCategory =
       win32.dirname(sourceRelativePath) === "." ? "" : win32.dirname(sourceRelativePath);
     const shouldRemoveMember = !isSamePath(sourceCategory, request.targetDirectoryRelativePath);
+    const shouldReplaceMember =
+      !shouldRemoveMember && !isSamePath(sourceRelativePath, targetRelativePath);
     const groupStateUpdate: GroupStateUpdate = {
       memberRelativePathsToRemove: shouldRemoveMember ? [sourceRelativePath] : [],
+      memberRelativePathReplacements: shouldReplaceMember
+        ? [{ fromRelativePath: sourceRelativePath, toRelativePath: targetRelativePath }]
+        : [],
       relocations: [],
     };
     const statePlan =
-      overrides.deferGroupState || !shouldRemoveMember
+      overrides.deferGroupState || (!shouldRemoveMember && !shouldReplaceMember)
         ? ok({ steps: [] })
-        : await groups.prepareRemoveMembers([sourceRelativePath]);
+        : await groups.prepareUpdates(groupStateUpdate);
     if (!statePlan.ok) return statePlan;
     const steps: FileTransactionStep[] = [
       ...(isSamePath(source.value, target.value)

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { DnfApi } from "../../shared/ipc-contracts";
 import type { CategorySnapshot, ChildCategory } from "../../shared/library-dto";
 import type { NavigationSelection, ViewMode } from "../workspace/model";
-import { workspaceItemKey } from "../workspace/model";
+import { workspaceItemKey, workspaceItemReference } from "../workspace/model";
 import { useAppearance } from "../workspace/useAppearance";
 import { useAppUpdate } from "../workspace/useAppUpdate";
 import { useGameDirectory } from "../workspace/useGameDirectory";
@@ -55,11 +55,12 @@ export function WorkspaceApp({ client }: WorkspaceAppProps): React.JSX.Element {
         : navigation.kind === "uncategorized"
           ? "uncategorized"
           : "all";
+  const activeGroupId = navigation.kind === "group" ? navigation.groupId : null;
   const workspace = useWorkspace(
     client,
-    navigation.kind === "group"
-      ? { groupId: navigation.groupId, scope: workspaceScope }
-      : { scope: workspaceScope },
+    activeGroupId === null
+      ? { scope: workspaceScope }
+      : { groupId: activeGroupId, scope: workspaceScope },
   );
   const gameDirectory = useGameDirectory(client);
   const appUpdate = useAppUpdate(client);
@@ -247,6 +248,24 @@ export function WorkspaceApp({ client }: WorkspaceAppProps): React.JSX.Element {
           setOperationBusy(true);
           void operations.addGroupMembers(groupId, patches).finally(() => setOperationBusy(false));
         }}
+        onRemoveFromGroup={
+          activeGroupId === null
+            ? undefined
+            : () => {
+                setOperationBusy(true);
+                void operations
+                  .removeGroupMembers(
+                    activeGroupId,
+                    selection.selectedItems.map(workspaceItemReference),
+                  )
+                  .then((result) => {
+                    if (result?.dissolved === true) {
+                      navigate({ kind: "category", relativePath: workspace.categoryPath });
+                    }
+                  })
+                  .finally(() => setOperationBusy(false));
+              }
+        }
         onMove={() => setActiveDialog("move")}
         onMoveTo={(targetDirectoryRelativePath, items) => {
           setOperationBusy(true);
@@ -268,8 +287,15 @@ export function WorkspaceApp({ client }: WorkspaceAppProps): React.JSX.Element {
             .finally(() => setOperationBusy(false));
         }}
         onRenameItem={(item, newName) => {
-          setOperationBusy(true);
-          return operations.renameItem(item, newName).finally(() => setOperationBusy(false));
+          const itemKey = workspaceItemKey(item);
+          setBusyItemKeys((current) => new Set([...current, itemKey]));
+          return operations.renameItem(item, newName).finally(() => {
+            setBusyItemKeys((current) => {
+              const next = new Set(current);
+              next.delete(itemKey);
+              return next;
+            });
+          });
         }}
         onSetItemEnabled={(item, enabled) => {
           // 单个开关的启用/停用只标记该卡片为忙碌，避免全局 busy 让所有开关闪烁。
@@ -390,7 +416,7 @@ export function WorkspaceApp({ client }: WorkspaceAppProps): React.JSX.Element {
       />
       {settingsOpen ? (
         <SettingsDialog
-          currentVersion={client?.appInfo.version ?? "1.3.0"}
+          currentVersion={client?.appInfo.version ?? "1.3.1"}
           gameDirectory={gameDirectory.gameDirectory}
           gameDirectoryBusy={
             gameDirectory.loading || gameDirectory.selecting || gameDirectory.saving

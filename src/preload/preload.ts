@@ -29,6 +29,7 @@ import {
   RecycleBatchRequestSchema,
   RecycleEntryDtoSchema,
   RecycleRequestSchema,
+  RemoveGroupMembersRequestSchema,
   RenameCategoryRequestSchema,
   RestoreRequestSchema,
   RevealPatchRequestSchema,
@@ -67,6 +68,9 @@ const RecycleListResultSchema = apiResultSchema(
   z.object({ items: z.array(RecycleEntryDtoSchema) }),
 );
 const IdResultSchema = apiResultSchema(z.object({ id: z.string().uuid() }));
+const GroupMemberRemovalResultSchema = apiResultSchema(
+  z.object({ dissolved: z.boolean(), id: z.string().uuid() }),
+);
 const IdsResultSchema = apiResultSchema(z.object({ ids: z.array(z.string().uuid()) }));
 const PathResultSchema = apiResultSchema(z.object({ relativePath: z.string() }));
 const PathsResultSchema = apiResultSchema(z.object({ relativePaths: z.array(z.string()) }));
@@ -166,6 +170,10 @@ const api = {
   addGroupMembers: (request) => {
     AddGroupMembersRequestSchema.parse(request);
     return invoke(IPC_CHANNELS.addGroupMembers, IdResultSchema, request);
+  },
+  removeGroupMembers: (request) => {
+    RemoveGroupMembersRequestSchema.parse(request);
+    return invoke(IPC_CHANNELS.removeGroupMembers, GroupMemberRemovalResultSchema, request);
   },
   dissolveGroup: (request) => {
     DissolveGroupRequestSchema.parse(request);

@@ -82,6 +82,7 @@
   --font-lg: 14px;
   --font-xl: 16px;
   --font-2xl: 20px;
+  --font-card-info: "思源黑体", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
   /* 标题档：标题栏标题、设置页小标题与空状态主标题共用，
      比正文大一档、比卡片标题小一档。 */
   --font-heading: 15px;

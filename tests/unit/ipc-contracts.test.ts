@@ -11,6 +11,7 @@ import {
   MoveItemsRequestSchema,
   OpenExternalUrlRequestSchema,
   RecycleBatchRequestSchema,
+  RemoveGroupMembersRequestSchema,
   ScanGroupRequestSchema,
   ScanRequestSchema,
 } from "../../src/shared/ipc-contracts";
@@ -102,6 +103,22 @@ describe("IPC request contracts", () => {
 
   it("exposes the dissolve-group IPC channel", () => {
     expect(IPC_CHANNELS.dissolveGroup).toBe("library:dissolve-group");
+  });
+
+  it("parses a valid remove-group-members request", () => {
+    expect(
+      RemoveGroupMembersRequestSchema.safeParse({
+        groupId: "0552babf-49b5-4390-96a7-1846a0c1e9f8",
+        patchRelativePaths: ["CategoryA\\coat.npk"],
+      }).success,
+    ).toBe(true);
+    expect(
+      RemoveGroupMembersRequestSchema.safeParse({
+        groupId: "0552babf-49b5-4390-96a7-1846a0c1e9f8",
+        patchRelativePaths: [],
+      }).success,
+    ).toBe(false);
+    expect(IPC_CHANNELS.removeGroupMembers).toBe("library:remove-group-members");
   });
 
   it("accepts a UUID-based group scan request", () => {

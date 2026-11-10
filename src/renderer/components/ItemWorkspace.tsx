@@ -4,10 +4,11 @@ import {
   FolderInput,
   FolderOpen,
   Grid2X2,
+  ImagePlus,
   Layers,
   List,
-  LogIn,
   Minus,
+  PackageMinus,
   PackageOpen,
   Pencil,
   Plus,
@@ -78,6 +79,7 @@ type ItemWorkspaceProps = {
   readonly showDescendantToggle: boolean;
   readonly onCreateGroup: () => void;
   readonly onAddGroupMembers: (groupId: string, patches: readonly WorkspaceItemReference[]) => void;
+  readonly onRemoveFromGroup: (() => void) | undefined;
   readonly onDissolveGroup: () => void;
   readonly onEnterGroup: (item: WorkspaceItem) => void;
   readonly onReturnFromGroup: (() => void) | undefined;
@@ -213,6 +215,32 @@ export function ItemWorkspace(props: ItemWorkspaceProps): React.JSX.Element {
     renameInputRef.current?.select();
   }, [renamePath]);
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (
+        props.readOnly ||
+        props.operationBusy ||
+        !(event.ctrlKey || event.metaKey) ||
+        event.key.toLocaleLowerCase() !== "a" ||
+        props.visibleItems.length === 0
+      ) {
+        return;
+      }
+      if (
+        event.target instanceof Element &&
+        event.target.closest(
+          "input, textarea, select, [contenteditable='true'], .item-context-menu, [role='dialog']",
+        ) !== null
+      ) {
+        return;
+      }
+      event.preventDefault();
+      props.onBoxSelect(props.visibleItems.map(workspaceItemKey));
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [props.onBoxSelect, props.operationBusy, props.readOnly, props.visibleItems]);
+
   const beginRename = (item: WorkspaceItem): void => {
     if (props.readOnly || props.operationBusy) {
       return;
@@ -318,9 +346,9 @@ export function ItemWorkspace(props: ItemWorkspaceProps): React.JSX.Element {
                   }),
             },
             {
-              icon: <LogIn size={16} />,
-              label: "\u8fdb\u5165\u7ec4",
-              onClick: () => props.onEnterGroup(contextMenu.item),
+              icon: <ImagePlus size={16} />,
+              label: "\u8bbe\u7f6e\u9884\u89c8",
+              onClick: () => props.onSelectPreview(contextMenu.item),
             },
             {
               icon: <Ungroup size={16} />,
@@ -362,6 +390,11 @@ export function ItemWorkspace(props: ItemWorkspaceProps): React.JSX.Element {
                   }),
             },
             {
+              icon: <ImagePlus size={16} />,
+              label: "\u8bbe\u7f6e\u9884\u89c8",
+              onClick: () => props.onSelectPreview(contextMenu.item),
+            },
+            {
               disabled:
                 contextMenu.selectedItems.length < 2 ||
                 !contextMenu.selectedItems.every((item) => item.kind === "patch"),
@@ -370,6 +403,15 @@ export function ItemWorkspace(props: ItemWorkspaceProps): React.JSX.Element {
               onClick: props.onCreateGroup,
               shortcut: "Ctrl+G",
             },
+            ...(props.onRemoveFromGroup === undefined
+              ? []
+              : [
+                  {
+                    icon: <PackageMinus size={16} />,
+                    label: "\u79fb\u9664\u7ec4",
+                    onClick: props.onRemoveFromGroup,
+                  },
+                ]),
             {
               disabled: !contextMenu.selectedItems.every((item) => item.kind === "patch"),
               icon: <Layers size={16} />,
@@ -736,10 +778,13 @@ export function ItemWorkspace(props: ItemWorkspaceProps): React.JSX.Element {
                     })
                   }
                   onDoubleClick={(event) => {
+                    // 组卡片双击任意位置都进入组（含预览区）；改预览图只走右键菜单。
+                    if (item.kind === "group") {
+                      props.onEnterGroup(item);
+                      return;
+                    }
                     if (event.target instanceof Element && event.target.closest(".item-preview")) {
                       props.onSelectPreview(item);
-                    } else if (item.kind === "group") {
-                      beginRename(item);
                     }
                   }}
                   onKeyDown={(event) => {
@@ -826,6 +871,10 @@ export function ItemWorkspace(props: ItemWorkspaceProps): React.JSX.Element {
                   onDoubleClick={(event) => {
                     event.preventDefault();
                     event.stopPropagation();
+                    if (item.kind === "group") {
+                      props.onEnterGroup(item);
+                      return;
+                    }
                     props.onSelectPreview(item);
                   }}
                   onMouseEnter={(event) => {

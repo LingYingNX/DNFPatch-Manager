@@ -40,6 +40,7 @@ import {
   OpenExternalUrlRequestSchema,
   RecycleBatchRequestSchema,
   RecycleRequestSchema,
+  RemoveGroupMembersRequestSchema,
   RestoreRequestSchema,
   RevealPatchRequestSchema,
   ScanGroupRequestSchema,
@@ -307,6 +308,12 @@ export async function registerIpc(
       const result = await groups.addMembers(request.groupId, request.patchRelativePaths);
       return toApiResult(result);
     }),
+  );
+
+  register(IPC_CHANNELS.removeGroupMembers, RemoveGroupMembersRequestSchema, async (request) =>
+    mutationMutex.runExclusive(async () =>
+      toApiResult(await groups.removeMembers(request.groupId, request.patchRelativePaths)),
+    ),
   );
 
   register(IPC_CHANNELS.dissolveGroup, DissolveGroupRequestSchema, async (request) =>

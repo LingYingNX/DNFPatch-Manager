@@ -11,6 +11,31 @@ function itemButton(name: string): HTMLElement {
 }
 
 describe("workspace selection", () => {
+  it("selects every visible patch and group with Ctrl+A", async () => {
+    render(<App api={createFakeApi(WORKSPACE_SNAPSHOT)} />);
+    await screen.findByText("coat.npk");
+
+    fireEvent.keyDown(document.body, { ctrlKey: true, key: "a" });
+
+    expect(itemButton("coat.npk")).toHaveAttribute("aria-pressed", "true");
+    expect(itemButton("sword.npk")).toHaveAttribute("aria-pressed", "true");
+    expect(itemButton("套装")).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("selects only cards visible in the current filter with Ctrl+A", async () => {
+    render(<App api={createFakeApi(WORKSPACE_SNAPSHOT)} />);
+    await screen.findByText("coat.npk");
+
+    const search = screen.getByRole("searchbox", { name: "搜索补丁" });
+    fireEvent.change(search, { target: { value: "npk" } });
+    fireEvent.keyDown(document.body, { ctrlKey: true, key: "a" });
+    fireEvent.change(search, { target: { value: "" } });
+
+    expect(itemButton("coat.npk")).toHaveAttribute("aria-pressed", "true");
+    expect(itemButton("sword.npk")).toHaveAttribute("aria-pressed", "true");
+    expect(itemButton("套装")).toHaveAttribute("aria-pressed", "false");
+  });
+
   it("supports Ctrl toggling and Shift range selection", async () => {
     render(<App api={createFakeApi(WORKSPACE_SNAPSHOT)} />);
     await screen.findByText("coat.npk");

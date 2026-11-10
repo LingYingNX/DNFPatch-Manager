@@ -53,6 +53,7 @@ export const AddGroupMembersRequestSchema = z.object({
   groupId: z.string().uuid(),
   patchRelativePaths: z.array(ItemRelativePathSchema).min(1),
 });
+export const RemoveGroupMembersRequestSchema = AddGroupMembersRequestSchema;
 export const CreateCategoryRequestSchema = z.object({
   parentRelativePath: RelativePathSchema,
   name: z.string().trim().min(1).max(120),
@@ -286,6 +287,7 @@ export const IPC_CHANNELS = {
   setCategoryStyle: "library:set-category-style",
   createGroup: "library:create-group",
   addGroupMembers: "library:add-group-members",
+  removeGroupMembers: "library:remove-group-members",
   dissolveGroup: "library:dissolve-group",
   createCategory: "library:create-category",
   renameCategory: "library:rename-category",
@@ -365,6 +367,9 @@ export type DnfApi = {
   readonly addGroupMembers: (
     request: z.input<typeof AddGroupMembersRequestSchema>,
   ) => Promise<ApiResult<{ readonly id: string }>>;
+  readonly removeGroupMembers: (
+    request: z.input<typeof RemoveGroupMembersRequestSchema>,
+  ) => Promise<ApiResult<{ readonly dissolved: boolean; readonly id: string }>>;
   readonly dissolveGroup: (
     request: z.input<typeof DissolveGroupRequestSchema>,
   ) => Promise<ApiResult<{ readonly id: string }>>;

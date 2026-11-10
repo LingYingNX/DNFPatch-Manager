@@ -31,3 +31,5 @@ tools/bink2nvenc/
 .tmp-bink2-verify/
 # BK2 转换工具参考源码（本地参考用，不入库）
 Bink2VideoToMP4-NVENC-main/
+# 本地生成的官方索引检测快照：体积大，不入库。
+DNF补丁检测_官方索引_*/

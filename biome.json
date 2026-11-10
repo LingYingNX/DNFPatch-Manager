@@ -16,7 +16,8 @@
       "!.agents",
       "!data",
       "!patch-categories",
-      "!website"
+      "!website",
+      "!DNF补丁检测_官方索引_*"
     ]
   },
   "assist": {

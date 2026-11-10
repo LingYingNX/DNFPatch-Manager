@@ -1,4 +1,17 @@
 .item-grid {
+  --item-card-info-height: calc(56px * 0.85);
+  --item-card-info-title-height: calc(var(--font-lg) * 1.2);
+  --item-card-info-meta-height: calc(var(--font-sm) * 1.2);
+  --item-card-info-content-height: calc(
+    var(--item-card-info-title-height) +
+    var(--item-card-info-meta-height) +
+    var(--space-1)
+  );
+  --item-card-info-title-offset: calc(
+    (var(--item-card-info-height) - var(--item-card-info-content-height)) /
+    2
+  );
+
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(var(--item-card-min-width, 212px), 1fr));
   align-items: start;
@@ -54,9 +67,9 @@
   width: 100%;
   height: auto;
   aspect-ratio: 4 / 3;
-  /* 信息区高度被两条视觉契约夹住：view-controls.e2e.ts 要求它 < 60px、
-     且预览区占卡片高度的 60%~80%。单行标题只需 56px。 */
-  grid-template-rows: minmax(0, 1fr) 56px;
+  /* 预览图铺满整卡；信息栏不再占一行，而是半透明压在预览图底部（见
+     .item-grid .item-card-body）。view-controls.e2e.ts 断言信息栏仍 < 60px。 */
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .item-card:hover,
@@ -116,6 +129,8 @@
 .item-grid .item-preview {
   height: 100%;
   aspect-ratio: auto;
+  /* 预览铺满整卡，原来分隔预览与信息区的那条线会落到卡片底边上，去掉。 */
+  border-bottom: 0;
   overflow: hidden;
 }
 
@@ -271,7 +286,7 @@
 }
 
 .item-grid .item-card-shell > .switch {
-  bottom: var(--space-3);
+  bottom: calc(var(--space-1) + 1.2px);
 }
 
 .switch input {
@@ -582,19 +597,29 @@
   align-items: flex-start;
   gap: var(--space-2);
   padding: var(--space-3);
+  font-family: var(--font-card-info);
 }
 
 .item-grid .item-card-body {
+  /* 信息栏压住预览图底部：绝对定位固定高度（原来靠卡片第二行网格轨道撑高），
+     底色 60% 半透明，预览图从下面透出来——与模型管理器封面卡片的信息栏
+     同一套语言。 */
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-rows: auto auto;
   align-content: center;
   column-gap: var(--space-2);
   row-gap: var(--space-1);
+  height: var(--item-card-info-height);
   min-height: 0;
   box-sizing: border-box;
   overflow: hidden;
   padding: var(--space-1) var(--space-3);
+  background: color-mix(in srgb, var(--color-surface) 60%, transparent);
 }
 
 .item-name-cell {
@@ -621,23 +646,48 @@
 .item-title-edit {
   position: absolute;
   z-index: 3;
-  /* 卡片信息区高度，与 .item-grid .item-card 的第二行轨道保持一致。 */
-  top: calc(100% - 56px + var(--space-2) + 2px);
-  right: calc(var(--space-3) + 1px);
-  left: calc(var(--space-3) + 1px);
+  /* 输入框位置只服务文字；可见边框/底框由 ::after 单独偏移。 */
+  top: calc(100% - var(--item-card-info-height) + var(--item-card-info-title-offset) - 2px);
+  right: calc(var(--space-3) + 3px);
+  left: calc(var(--space-3) - 1px);
   width: auto;
   min-width: 0;
-  height: 18px;
+  height: 20px;
   box-sizing: border-box;
-  padding: 0 6px;
+  padding: 0;
+  text-indent: 1px;
   border: 1px solid var(--color-primary);
-  border-radius: var(--radius-control);
+  border-radius: 2px;
   color: var(--patch-card-font-color);
   background: var(--color-surface);
   font: inherit;
+  font-family: var(--font-card-info);
   font-size: var(--font-lg);
   font-weight: 600;
   line-height: 1.35;
+}
+
+.item-grid .item-title-edit {
+  border-color: transparent;
+  background: transparent;
+}
+
+.item-grid .item-card-shell[data-renaming="true"]::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  top: calc(100% - var(--item-card-info-height) + var(--item-card-info-title-offset) - 1px);
+  right: calc(var(--space-3) + 5px);
+  left: calc(var(--space-3) - 3px);
+  height: 20px;
+  border: 1px solid var(--color-primary);
+  border-radius: 2px;
+  background: var(--color-surface);
+  pointer-events: none;
+}
+
+.item-title-edit:focus-visible {
+  box-shadow: none;
 }
 
 .item-card-shell[data-renaming="true"] .item-title {

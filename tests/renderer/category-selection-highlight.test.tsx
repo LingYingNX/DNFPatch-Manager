@@ -62,8 +62,7 @@ describe("category selection highlight", () => {
     fireEvent.click(category);
     expect(category).toHaveClass("selected");
 
-    fireEvent.contextMenu(await screen.findByRole("button", { name: /^套装/u }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "进入组" }));
+    fireEvent.doubleClick(await screen.findByRole("button", { name: /^套装/u }));
 
     await screen.findByRole("button", { name: "返回组" });
     expect(category).toHaveClass("selected");

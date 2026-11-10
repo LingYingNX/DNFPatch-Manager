@@ -127,6 +127,19 @@ test("switches real library items between stable grid and list views", async () 
     }
     expect(Math.abs(gridCardBox.width / gridCardBox.height - 4 / 3)).toBeLessThan(0.03);
     expect(gridCardBox.width).toBeGreaterThan(200);
+    // 信息栏要透出卡片自己的预览图：底色必须带透明度，opaque 底会把它挡回去。
+    // Chromium 把 color-mix 的结果序列化成 `color(srgb … / 0.6)`，所以 alpha 从
+    // 「/」后面取；不透明色没有这一段，取到的是蓝色通道值，同样会大于 1。
+    const bodyBackgroundAlpha = await gridCard.locator(".item-card-body").evaluate((element) => {
+      const value = getComputedStyle(element).backgroundColor;
+      const slash = value.lastIndexOf("/");
+      if (slash === -1) {
+        return Number.parseFloat(value.split(",").at(-1) ?? "1");
+      }
+      return Number.parseFloat(value.slice(slash + 1));
+    });
+    expect(bodyBackgroundAlpha).toBeGreaterThan(0.3);
+    expect(bodyBackgroundAlpha).toBeLessThan(1);
     // 悬停类断言读的是过渡的终值，而「每轮重新落点」与「过渡还没走完」天生冲突：
     // 轮询约 100ms 一轮，opacity 的过渡是 150ms（--motion-standard），每轮重进热点都会
     // 把它按回起点，于是永远读不到 1（实测稳定停在 0.920279，正是重新落点后约 120ms
@@ -232,13 +245,23 @@ test("switches real library items between stable grid and list views", async () 
     if (previewBox === null || bodyBox === null) {
       throw new Error("Grid card preview or body did not expose a visible bounding box");
     }
-    expect(previewBox.height).toBeGreaterThan(gridCardBox.height * 0.6);
-    expect(previewBox.height).toBeLessThan(gridCardBox.height * 0.8);
+    // 预览图铺满整卡，信息栏以 56px 的 85% 高度半透明压在底部（是重叠，不是上下分栏）。
+    expect(previewBox.height).toBeGreaterThan(gridCardBox.height * 0.95);
+    expect(previewBox.height).toBeLessThanOrEqual(gridCardBox.height);
     expect(bodyBox.height).toBeGreaterThan(0);
-    expect(bodyBox.height).toBeLessThan(60);
+    expect(bodyBox.height).toBeGreaterThan(46.6);
+    expect(bodyBox.height).toBeLessThan(48.6);
+    expect(
+      Math.abs(bodyBox.y + bodyBox.height - (gridCardBox.y + gridCardBox.height)),
+    ).toBeLessThan(2);
+    expect(bodyBox.y).toBeLessThan(previewBox.y + previewBox.height);
     await expect
-      .poll(() => gridCard.evaluate((element) => getComputedStyle(element).fontFamily))
-      .toContain("Microsoft YaHei");
+      .poll(() =>
+        gridCard
+          .locator(".item-card-body")
+          .evaluate((element) => getComputedStyle(element).fontFamily),
+      )
+      .toContain("思源黑体");
     await expect(gridCard.locator(".status-badge")).toHaveCount(0);
     const titleBox = await gridCard.locator(".item-title").boundingBox();
     const metaBox = await gridCard.locator(".item-meta").boundingBox();
@@ -263,6 +286,9 @@ test("switches real library items between stable grid and list views", async () 
     }
     expect(switchBox.width).toBeLessThan(40);
     expect(switchBox.height).toBeLessThan(24);
+    expect(
+      Math.abs(switchBox.y + switchBox.height / 2 - (dateBox.y + dateBox.height / 2)),
+    ).toBeLessThan(1.5);
     const overlaps =
       dateBox.x < switchBox.x + switchBox.width &&
       dateBox.x + dateBox.width > switchBox.x &&

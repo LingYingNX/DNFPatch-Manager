@@ -100,7 +100,8 @@ test("stores patch previews beside NPK files and group previews as managed asset
       .toBe(true);
     await expect(readFile(join(libraryRoot, "A-wrong.png"), "utf8")).resolves.toBe("mismatch");
 
-    await group.locator(".item-preview").dblclick();
+    await group.click({ button: "right" });
+    await page.getByRole("menuitem", { name: "设置预览" }).click();
     await expect
       .poll(() =>
         readdir(previewRoot).then(
@@ -259,8 +260,10 @@ test("changes a patch preview from inside a virtual group", async () => {
     await page.getByRole("menuitem", { name: "打组", exact: true }).click();
     await expect(page.getByRole("button", { name: "自定义", exact: true })).toBeVisible();
 
-    await page.getByRole("button", { name: "自定义", exact: true }).click({ button: "right" });
-    await page.getByRole("menuitem", { name: "进入组", exact: true }).click();
+    await page
+      .getByRole("button", { name: "自定义", exact: true })
+      .locator(".item-preview")
+      .dblclick();
     await expect(patch.locator(".item-preview-image")).toHaveCount(1);
     await expect
       .poll(() =>
@@ -426,21 +429,77 @@ test("keeps an inline rename editor inside the card name area", async () => {
     });
     await page.getByRole("button", { name: "coat.npk", exact: true }).press("F2");
 
-    const [editorBox, nameBox, metadataBox] = await Promise.all([
+    const [editorBox, nameBox, metadataBox, switchBox] = await Promise.all([
       page.getByRole("textbox", { name: "重命名 coat.npk" }).boundingBox(),
       card.locator(".item-name-cell").boundingBox(),
       card.locator(".item-meta").boundingBox(),
+      card.locator(".switch").boundingBox(),
     ]);
     expect(editorBox).not.toBeNull();
     expect(nameBox).not.toBeNull();
     expect(metadataBox).not.toBeNull();
-    if (editorBox === null || nameBox === null || metadataBox === null) {
+    expect(switchBox).not.toBeNull();
+    if (editorBox === null || nameBox === null || metadataBox === null || switchBox === null) {
       throw new Error("Inline rename layout did not expose card dimensions");
     }
-    expect(editorBox.x).toBeGreaterThanOrEqual(nameBox.x);
-    expect(editorBox.x + editorBox.width).toBeLessThanOrEqual(nameBox.x + nameBox.width);
-    expect(editorBox.y).toBeGreaterThanOrEqual(nameBox.y);
+    expect(Math.abs(editorBox.x + 2 - nameBox.x)).toBeLessThan(0.1);
+    expect(Math.abs(editorBox.x + editorBox.width + 2 - (nameBox.x + nameBox.width))).toBeLessThan(
+      0.1,
+    );
+    expect(Math.abs(editorBox.y + 1 - nameBox.y)).toBeLessThan(0.1);
+    expect(editorBox.height).toBe(20);
     expect(editorBox.y + editorBox.height).toBeLessThanOrEqual(metadataBox.y);
+    expect(editorBox.y + editorBox.height).toBeLessThanOrEqual(switchBox.y);
+    const frameBox = await page
+      .getByRole("textbox", { name: "重命名 coat.npk" })
+      .evaluate((element) => {
+        const shell = element.closest(".item-card-shell");
+        if (shell === null) {
+          return null;
+        }
+        const shellBox = shell.getBoundingClientRect();
+        const style = getComputedStyle(shell, "::after");
+        const left = shellBox.left + Number.parseFloat(style.left);
+        const right = shellBox.right - Number.parseFloat(style.right);
+        return {
+          left,
+          right,
+          top: shellBox.top + Number.parseFloat(style.top),
+          height: Number.parseFloat(style.height),
+          borderTopWidth: style.borderTopWidth,
+          borderRadius: style.borderTopLeftRadius,
+        };
+      });
+    expect(frameBox).not.toBeNull();
+    if (frameBox === null) {
+      throw new Error("Inline rename frame did not expose dimensions");
+    }
+    expect(Math.abs(frameBox.left - (editorBox.x - 2))).toBeLessThan(0.1);
+    expect(Math.abs(frameBox.right - (editorBox.x + editorBox.width - 2))).toBeLessThan(0.1);
+    expect(Math.abs(frameBox.top - (editorBox.y + 1))).toBeLessThan(0.1);
+    expect(frameBox.height).toBe(20);
+    expect(frameBox.borderTopWidth).toBe("1px");
+    expect(frameBox.borderRadius).toBe("2px");
+    await expect
+      .poll(() =>
+        page.getByRole("textbox", { name: "重命名 coat.npk" }).evaluate((element) => {
+          const style = getComputedStyle(element);
+          return {
+            borderTopWidth: style.borderTopWidth,
+            borderRadius: style.borderTopLeftRadius,
+            boxShadow: style.boxShadow,
+            paddingLeft: style.paddingLeft,
+            textIndent: style.textIndent,
+          };
+        }),
+      )
+      .toEqual({
+        borderTopWidth: "1px",
+        borderRadius: "2px",
+        boxShadow: "none",
+        paddingLeft: "0px",
+        textIndent: "1px",
+      });
   } finally {
     await application.close();
     await rm(runtimeRoot, { force: true, recursive: true, maxRetries: 5, retryDelay: 100 });

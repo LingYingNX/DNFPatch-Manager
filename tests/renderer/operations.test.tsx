@@ -121,7 +121,16 @@ describe("workspace operations", () => {
     const labels = within(menu)
       .getAllByRole("menuitem")
       .map((item) => item.querySelector(".item-context-menu-label")?.textContent);
-    expect(labels).toEqual(["停用", "移动", "打组", "加入预设", "重命名", "源文件", "删除"]);
+    expect(labels).toEqual([
+      "停用",
+      "移动",
+      "设置预览",
+      "打组",
+      "加入预设",
+      "重命名",
+      "源文件",
+      "删除",
+    ]);
     expect(
       Array.from(menu.querySelectorAll(".item-context-menu-shortcut")).map(
         (shortcut) => shortcut.textContent,
@@ -470,7 +479,7 @@ describe("workspace operations", () => {
     );
   });
 
-  it("shows group navigation and dissolve actions in the group menu", async () => {
+  it("enters a group by double click and keeps dissolve in the group menu", async () => {
     const scanRequests: Array<Parameters<DnfApi["scan"]>[0]> = [];
     const scanGroupRequests: Array<Parameters<DnfApi["scanGroup"]>[0]> = [];
     let dissolveRequest: Parameters<DnfApi["dissolveGroup"]>[0] | undefined;
@@ -499,8 +508,8 @@ describe("workspace operations", () => {
       within(menu)
         .getAllByRole("menuitem")
         .map((item) => item.textContent),
-    ).toEqual(["启用", "移动", "进入组", "解散组", "加入预设", "重命名", "删除"]);
-    fireEvent.click(within(menu).getByRole("menuitem", { name: "进入组" }));
+    ).toEqual(["启用", "移动", "设置预览", "解散组", "加入预设", "重命名", "删除"]);
+    fireEvent.doubleClick(itemButton("套装"));
 
     await waitFor(() =>
       expect(scanGroupRequests.at(-1)).toEqual({
@@ -517,6 +526,52 @@ describe("workspace operations", () => {
       expect(dissolveRequest).toEqual({ groupId: "0552babf-49b5-4390-96a7-1846a0c1e9f8" }),
     );
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("removes patches from the active group through the patch context menu", async () => {
+    let removeRequest: Parameters<DnfApi["removeGroupMembers"]>[0] | undefined;
+    const api: DnfApi = {
+      ...createFakeApi(WORKSPACE_SNAPSHOT),
+      removeGroupMembers: async (request) => {
+        removeRequest = request;
+        return { ok: true, value: { dissolved: true, id: request.groupId } };
+      },
+    };
+    render(<App api={api} />);
+    await screen.findByText("套装");
+    fireEvent.doubleClick(itemButton("套装"));
+    await screen.findByText("coat.npk");
+
+    fireEvent.contextMenu(itemButton("coat.npk"));
+
+    const menu = screen.getByRole("menu");
+    expect(
+      within(menu)
+        .getAllByRole("menuitem")
+        .map((item) => item.querySelector(".item-context-menu-label")?.textContent),
+    ).toEqual([
+      "停用",
+      "移动",
+      "设置预览",
+      "打组",
+      "移除组",
+      "加入预设",
+      "重命名",
+      "源文件",
+      "删除",
+    ]);
+    fireEvent.click(within(menu).getByRole("menuitem", { name: "移除组" }));
+
+    await waitFor(() =>
+      expect(removeRequest).toEqual({
+        groupId: "0552babf-49b5-4390-96a7-1846a0c1e9f8",
+        patchRelativePaths: ["coat.npk"],
+      }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "返回组" })).not.toBeInTheDocument(),
+    );
+    expect(await screen.findByText("套装")).toBeVisible();
   });
 
   it("creates a default-named group directly from the keyboard shortcut", async () => {
@@ -629,6 +684,37 @@ describe("workspace operations", () => {
         targetDirectoryRelativePath: "",
         newName: "coat-new.npk",
       }),
+    );
+  });
+
+  it("does not disable other patch toggles while a rename is pending", async () => {
+    let resolveMove: ((result: Awaited<ReturnType<DnfApi["moveItem"]>>) => void) | undefined;
+    const api: DnfApi = {
+      ...createFakeApi(WORKSPACE_SNAPSHOT),
+      moveItem: () =>
+        new Promise((resolve) => {
+          resolveMove = resolve;
+        }),
+    };
+    render(<App api={api} />);
+    await screen.findByText("coat.npk");
+    fireEvent.contextMenu(itemButton("coat.npk"));
+    fireEvent.click(within(screen.getByRole("menu")).getByRole("menuitem", { name: "重命名" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "重命名 coat.npk" }), {
+      target: { value: "coat-new" },
+    });
+    fireEvent.keyDown(screen.getByRole("textbox", { name: "重命名 coat.npk" }), {
+      key: "Enter",
+    });
+
+    await waitFor(() =>
+      expect(screen.getByRole("textbox", { name: "重命名 coat.npk" })).toBeDisabled(),
+    );
+    expect(screen.getByRole("checkbox", { name: "启用 sword.npk" })).not.toBeDisabled();
+
+    resolveMove?.({ ok: true, value: { relativePath: "coat-new.npk" } });
+    await waitFor(() =>
+      expect(screen.queryByRole("textbox", { name: "重命名 coat.npk" })).not.toBeInTheDocument(),
     );
   });
 

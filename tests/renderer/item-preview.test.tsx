@@ -26,6 +26,75 @@ describe("item previews", () => {
     expect(scan).toHaveBeenCalledTimes(2);
   });
 
+  it("chooses a patch preview from the card context menu", async () => {
+    const api = createFakeApi(WORKSPACE_SNAPSHOT);
+    const selectItemPreview = vi.fn(async () => ({
+      ok: true as const,
+      value: { previewUrl: null },
+    }));
+    render(<App api={{ ...api, selectItemPreview }} />);
+    const card = await screen.findByRole("button", { name: "coat.npk" });
+
+    fireEvent.contextMenu(card);
+    fireEvent.click(screen.getByRole("menuitem", { name: "设置预览" }));
+
+    await waitFor(() =>
+      expect(selectItemPreview).toHaveBeenCalledWith({ kind: "patch", relativePath: "coat.npk" }),
+    );
+  });
+
+  it("enters a group when its preview area is double clicked", async () => {
+    const api = createFakeApi(WORKSPACE_SNAPSHOT);
+    const selectItemPreview = vi.fn(async () => ({
+      ok: true as const,
+      value: { previewUrl: null },
+    }));
+    render(<App api={{ ...api, selectItemPreview }} />);
+    const card = await screen.findByRole("button", { name: "套装" });
+
+    fireEvent.doubleClick(card.querySelector(".item-preview") ?? card);
+
+    await screen.findByRole("button", { name: "返回组" });
+    expect(selectItemPreview).not.toHaveBeenCalled();
+  });
+
+  it("enters a group when its hover zone is double clicked", async () => {
+    const api = createFakeApi(WORKSPACE_SNAPSHOT);
+    const selectItemPreview = vi.fn(async () => ({
+      ok: true as const,
+      value: { previewUrl: null },
+    }));
+    render(<App api={{ ...api, selectItemPreview }} />);
+    const card = await screen.findByRole("button", { name: "套装" });
+    const hoverZone = card.parentElement?.querySelector(".item-preview-hover-zone");
+    expect(hoverZone).not.toBeNull();
+
+    fireEvent.doubleClick(hoverZone ?? card);
+
+    await screen.findByRole("button", { name: "返回组" });
+    expect(selectItemPreview).not.toHaveBeenCalled();
+  });
+
+  it("chooses a group preview from the card context menu", async () => {
+    const api = createFakeApi(WORKSPACE_SNAPSHOT);
+    const selectItemPreview = vi.fn(async () => ({
+      ok: true as const,
+      value: { previewUrl: null },
+    }));
+    render(<App api={{ ...api, selectItemPreview }} />);
+    const card = await screen.findByRole("button", { name: "套装" });
+
+    fireEvent.contextMenu(card);
+    fireEvent.click(screen.getByRole("menuitem", { name: "设置预览" }));
+
+    await waitFor(() =>
+      expect(selectItemPreview).toHaveBeenCalledWith({
+        kind: "group",
+        groupId: "0552babf-49b5-4390-96a7-1846a0c1e9f8",
+      }),
+    );
+  });
+
   it("renders a hover affordance for every card and zooms only matching previews", async () => {
     const api = createFakeApi({
       ...WORKSPACE_SNAPSHOT,

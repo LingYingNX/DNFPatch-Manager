@@ -141,6 +141,10 @@ export function createFakeApi(snapshot: CategorySnapshot): DnfApi {
       ok: true,
       value: { id: groupId },
     }),
+    removeGroupMembers: async ({ groupId }) => ({
+      ok: true,
+      value: { dissolved: false, id: groupId },
+    }),
     dissolveGroup: async ({ groupId }) => ({
       ok: true,
       value: { id: groupId },

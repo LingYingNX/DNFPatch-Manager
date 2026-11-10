@@ -128,6 +128,9 @@ export async function prepareMoveLibraryItems(
     memberRelativePathsToRemove: plannedMoves.flatMap(
       (plan) => plan.groupStateUpdate.memberRelativePathsToRemove,
     ),
+    memberRelativePathReplacements: plannedMoves.flatMap(
+      (plan) => plan.groupStateUpdate.memberRelativePathReplacements,
+    ),
     relocations: plannedMoves.flatMap((plan) => plan.groupStateUpdate.relocations),
   });
   if (!statePlan.ok) return statePlan;

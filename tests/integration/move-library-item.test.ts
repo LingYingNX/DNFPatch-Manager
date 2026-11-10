@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { createVirtualGroupService } from "../../src/core/groups/group-service";
 import { moveLibraryItem } from "../../src/core/library/move-library-item";
+import { scanGroup } from "../../src/core/library/scanner";
 import { resolveAppPaths } from "../../src/main/app-paths";
 
 const temporaryDirectories: string[] = [];
@@ -95,6 +96,51 @@ describe("move library item", () => {
       ok: true,
       value: { name: "Renamed bundle", categoryRelativePath: "CategoryA" },
     });
+  });
+
+  it("keeps a renamed patch inside its virtual group", async () => {
+    const { groups, paths } = await createFixture();
+
+    const result = await moveLibraryItem(
+      {
+        libraryRoot: paths.libraryRoot,
+        kind: "patch",
+        sourceRelativePath: "CategoryA\\a.npk",
+        targetDirectoryRelativePath: "CategoryA",
+        newName: "renamed.npk",
+      },
+      { groups },
+    );
+
+    expect(result).toEqual({ ok: true, value: { relativePath: "CategoryA\\renamed.npk" } });
+    await expect(groups.get(groupId)).resolves.toMatchObject({
+      ok: true,
+      value: {
+        memberRelativePaths: ["CategoryA\\renamed.npk", "CategoryA\\b.npk"],
+      },
+    });
+  });
+
+  it("keeps a renamed patch in its saved group order", async () => {
+    const { groups, paths } = await createFixture();
+
+    const result = await moveLibraryItem(
+      {
+        libraryRoot: paths.libraryRoot,
+        kind: "patch",
+        sourceRelativePath: "CategoryA\\a.npk",
+        targetDirectoryRelativePath: "CategoryA",
+        newName: "z.npk",
+      },
+      { groups },
+    );
+    expect(result.ok).toBe(true);
+
+    const snapshot = await scanGroup(paths.libraryRoot, groupId, { groups });
+    expect(snapshot.ok ? snapshot.value.patches.map((patch) => patch.name) : snapshot).toEqual([
+      "z.npk",
+      "b.npk",
+    ]);
   });
 
   it("moves the still cover and the hover MP4 along with a renamed BK2", async () => {

@@ -32,14 +32,14 @@ describe("release notes", () => {
         "1.4.0",
         ["updater note"],
         ["## GitHub note", "- authoritative"],
-        "1.3.0",
+        "1.3.1",
         ["local note"],
       ),
     ).toEqual(["## GitHub note", "- authoritative"]);
   });
 
   it("falls back to updater notes when GitHub is unavailable", () => {
-    expect(selectReleaseNotes("1.4.0", ["updater note"], [], "1.3.0", ["local note"])).toEqual([
+    expect(selectReleaseNotes("1.4.0", ["updater note"], [], "1.3.1", ["local note"])).toEqual([
       "updater note",
     ]);
   });

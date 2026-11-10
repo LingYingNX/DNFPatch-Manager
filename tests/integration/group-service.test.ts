@@ -172,6 +172,43 @@ describe("virtual group service", () => {
     });
   });
 
+  it("removes members without deleting files and dissolves a group below two members", async () => {
+    const { categoryA, paths } = await createFixture();
+    const groupId = "0552babf-49b5-4390-96a7-1846a0c1e9f8";
+    const groups = createVirtualGroupService({
+      dataRoot: paths.dataRoot,
+      libraryRoot: paths.libraryRoot,
+      createId: () => groupId,
+    });
+    const created = await groups.create({
+      categoryRelativePath: "CategoryA",
+      memberRelativePaths: ["CategoryA\\a.npk", "CategoryA\\b.npk", "CategoryA\\c.npk"],
+      name: "Bundle",
+    });
+    if (!created.ok) throw new Error("Expected group creation to succeed");
+
+    await expect(groups.removeMembers(groupId, ["CategoryA\\a.npk"])).resolves.toEqual({
+      ok: true,
+      value: { dissolved: false, id: groupId },
+    });
+    await expect(groups.get(groupId)).resolves.toMatchObject({
+      ok: true,
+      value: { memberRelativePaths: ["CategoryA\\b.npk", "CategoryA\\c.npk"] },
+    });
+
+    await expect(groups.removeMembers(groupId, ["CategoryA/b.npk"])).resolves.toEqual({
+      ok: true,
+      value: { dissolved: true, id: groupId },
+    });
+    await expect(groups.get(groupId)).resolves.toEqual({
+      ok: false,
+      error: { code: "GROUP_NOT_FOUND", id: groupId },
+    });
+    await expect(readFile(join(categoryA, "a.npk"), "utf8")).resolves.toBe("a");
+    await expect(readFile(join(categoryA, "b.npk"), "utf8")).resolves.toBe("b");
+    await expect(readFile(join(categoryA, "c.npk"), "utf8")).resolves.toBe("c");
+  });
+
   it("rejects non-NPK, missing, directory, and escaping members with typed errors", async () => {
     const { paths } = await createFixture();
     const groups = createVirtualGroupService({

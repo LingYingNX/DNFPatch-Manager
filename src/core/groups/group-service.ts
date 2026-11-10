@@ -59,6 +59,11 @@ export type GroupRelocation = {
   readonly name?: string;
 };
 
+export type GroupMemberReplacement = {
+  readonly fromRelativePath: string;
+  readonly toRelativePath: string;
+};
+
 export type VirtualGroupStatePlan = {
   readonly steps: readonly FileTransactionStep[];
 };
@@ -80,6 +85,12 @@ export type VirtualGroupService = {
     groupId: string,
     memberRelativePaths: readonly string[],
   ) => Promise<Result<VirtualGroup, VirtualGroupServiceError>>;
+  readonly removeMembers: (
+    groupId: string,
+    memberRelativePaths: readonly string[],
+  ) => Promise<
+    Result<{ readonly dissolved: boolean; readonly id: string }, VirtualGroupServiceError>
+  >;
   readonly dissolve: (
     groupId: string,
   ) => Promise<Result<{ readonly id: string }, VirtualGroupServiceError>>;
@@ -94,6 +105,7 @@ export type VirtualGroupService = {
   ) => Promise<Result<VirtualGroupStatePlan, VirtualGroupServiceError>>;
   readonly prepareUpdates: (request: {
     readonly memberRelativePathsToRemove: readonly string[];
+    readonly memberRelativePathReplacements?: readonly GroupMemberReplacement[];
     readonly relocations: readonly GroupRelocation[];
   }) => Promise<Result<VirtualGroupStatePlan, VirtualGroupServiceError>>;
 };
@@ -160,6 +172,7 @@ export function createVirtualGroupService(
 
   const prepareUpdates = async (request: {
     readonly memberRelativePathsToRemove: readonly string[];
+    readonly memberRelativePathReplacements?: readonly GroupMemberReplacement[];
     readonly relocations: readonly GroupRelocation[];
   }): Promise<Result<VirtualGroupStatePlan, VirtualGroupServiceError>> => {
     return mutationMutex.runExclusive(async () => {
@@ -169,6 +182,21 @@ export function createVirtualGroupService(
       const removalKeys = new Set(
         request.memberRelativePathsToRemove.map(virtualGroupMemberPathKey),
       );
+      const replacements = new Map<string, string>();
+      for (const replacement of request.memberRelativePathReplacements ?? []) {
+        const fromKey = virtualGroupMemberPathKey(replacement.fromRelativePath);
+        const toRelativePath = normalizeVirtualGroupRelativePath(replacement.toRelativePath);
+        if (!isLibraryPatchPath(toRelativePath)) {
+          return err({ code: "INVALID_GROUP_MEMBER", relativePath: replacement.toRelativePath });
+        }
+        if (replacements.has(fromKey)) {
+          return err({
+            code: "DUPLICATE_GROUP_MEMBER",
+            relativePath: replacement.fromRelativePath,
+          });
+        }
+        replacements.set(fromKey, toRelativePath);
+      }
       const relocations = new Map<string, GroupRelocation>();
       for (const relocation of request.relocations) {
         const categoryRelativePath = normalizeCategoryRelativePath(relocation.categoryRelativePath);
@@ -192,9 +220,16 @@ export function createVirtualGroupService(
       const next: VirtualGroupsState = {
         formatVersion: 1,
         groups: state.value.groups.flatMap((group) => {
-          const retainedMembers = group.memberRelativePaths.filter(
-            (memberRelativePath) => !removalKeys.has(virtualGroupMemberPathKey(memberRelativePath)),
-          );
+          const retainedMembers = group.memberRelativePaths
+            .filter(
+              (memberRelativePath) =>
+                !removalKeys.has(virtualGroupMemberPathKey(memberRelativePath)),
+            )
+            .map(
+              (memberRelativePath) =>
+                replacements.get(virtualGroupMemberPathKey(memberRelativePath)) ??
+                memberRelativePath,
+            );
           if (retainedMembers.length < 2) return [];
 
           const relocation = relocations.get(group.id);
@@ -216,6 +251,27 @@ export function createVirtualGroupService(
           ];
         }),
       };
+      const memberKeys = new Set<string>();
+      for (const group of next.groups) {
+        for (const memberRelativePath of group.memberRelativePaths) {
+          if (
+            !isLibraryPatchPath(memberRelativePath) ||
+            !isSameRelativePath(parentRelativePath(memberRelativePath), group.categoryRelativePath)
+          ) {
+            return err({
+              code: isLibraryPatchPath(memberRelativePath)
+                ? "GROUP_MEMBER_OUTSIDE_CATEGORY"
+                : "INVALID_GROUP_MEMBER",
+              relativePath: memberRelativePath,
+            });
+          }
+          const memberKey = virtualGroupMemberPathKey(memberRelativePath);
+          if (memberKeys.has(memberKey)) {
+            return err({ code: "GROUP_MEMBER_ASSIGNED", relativePath: memberRelativePath });
+          }
+          memberKeys.add(memberKey);
+        }
+      }
       return prepareStateWrite(state.value, next);
     });
   };
@@ -398,6 +454,50 @@ export function createVirtualGroupService(
         return written.ok
           ? ok(next.groups.find((group) => group.id === groupId) as VirtualGroup)
           : written;
+      });
+    },
+    async removeMembers(groupId, memberRelativePaths) {
+      return mutationMutex.runExclusive(async () => {
+        const state = await list();
+        if (!state.ok) return state;
+        const target = state.value.groups.find((group) => group.id === groupId);
+        if (target === undefined) return err({ code: "GROUP_NOT_FOUND", id: groupId });
+        if (memberRelativePaths.length === 0) return err({ code: "INVALID_GROUP_MEMBERS" });
+
+        const removalKeys = new Set<string>();
+        for (const memberRelativePath of memberRelativePaths) {
+          const normalized = normalizeVirtualGroupRelativePath(memberRelativePath);
+          const key = virtualGroupMemberPathKey(normalized);
+          if (removalKeys.has(key)) {
+            return err({ code: "DUPLICATE_GROUP_MEMBER", relativePath: normalized });
+          }
+          removalKeys.add(key);
+        }
+
+        const targetKeys = new Set(target.memberRelativePaths.map(virtualGroupMemberPathKey));
+        for (const memberRelativePath of memberRelativePaths) {
+          const normalized = normalizeVirtualGroupRelativePath(memberRelativePath);
+          if (!targetKeys.has(virtualGroupMemberPathKey(normalized))) {
+            return err({ code: "GROUP_MEMBER_NOT_FOUND", relativePath: normalized });
+          }
+        }
+
+        const remainingMembers = target.memberRelativePaths.filter(
+          (memberRelativePath) => !removalKeys.has(virtualGroupMemberPathKey(memberRelativePath)),
+        );
+        const next: VirtualGroupsState = {
+          formatVersion: 1,
+          groups:
+            remainingMembers.length < 2
+              ? state.value.groups.filter((group) => group.id !== groupId)
+              : state.value.groups.map((group) =>
+                  group.id === groupId
+                    ? { ...group, memberRelativePaths: remainingMembers }
+                    : group,
+                ),
+        };
+        const written = await store.write(next);
+        return written.ok ? ok({ dissolved: remainingMembers.length < 2, id: groupId }) : written;
       });
     },
     async dissolve(groupId) {
